@@ -1,0 +1,15 @@
+const links = [
+  ['dashboard', '▦', 'Overview'], ['transactions', '↗', 'Transactions'],
+  ['members', '♙', 'Members'], ['approvals', '✓', 'Approvals'],
+  ['reports', '▤', 'Reports'], ['account', '⚙', 'Account settings'],
+]
+
+export default function Sidebar({ page, onNavigate }) {
+  return <aside className="sidebar">
+    <a className="brand" href="#dashboard" onClick={event => { event.preventDefault(); onNavigate('dashboard') }}><span className="brand-mark">g</span> gather<span className="brand-period">.</span></a>
+    <div className="group-card"><span className="group-symbol">U</span><span><b>Umoja Welfare</b><small>Community group</small></span></div>
+    <span className="side-label">WORKSPACE</span>
+    <nav className="side-nav" aria-label="Main navigation">{links.map(([key, icon, label]) => <button key={key} className={page === key ? 'nav-link selected' : 'nav-link'} onClick={() => onNavigate(key)}><span>{icon}</span>{label}{key === 'approvals' && <i>3</i>}</button>)}</nav>
+    <div className="sidebar-bottom"><div className="help-card"><b>Need a hand?</b><small>Visit our help center</small></div><div className="sidebar-user"><span className="avatar avatar-green">JO</span><span><b>James Otieno</b><small>Treasurer</small></span></div></div>
+  </aside>
+}
