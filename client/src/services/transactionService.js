@@ -37,3 +37,15 @@ export async function reverseTransaction(id, reason) {
 
   return result.transaction
 }
+
+export async function getWeeklyGroupReport(weekStart) {
+  const query = new URLSearchParams({ weekStart })
+  const result = await apiRequest(`/transactions/weekly-report?${query}`)
+  return result.weeklyReport
+}
+
+export async function getWeeklyMemberReport(weekStart) {
+  const query = new URLSearchParams({ weekStart })
+  const result = await apiRequest(`/transactions/weekly-report/members?${query}`)
+  return result.weeklyReport
+}

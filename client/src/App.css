@@ -1268,6 +1268,39 @@ footer span {
   color: #a32e28;
 }
 
+.weekly-report-controls {
+  display: grid;
+  max-width: 420px;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.weekly-report-controls label {
+  color: #4a584f;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.weekly-report-controls input {
+  min-height: 42px;
+  padding: 8px 10px;
+  border: 1px solid var(--border, #e5eae6);
+  border-radius: 9px;
+  background: #fff;
+  font: inherit;
+}
+
+.weekly-report-controls p {
+  margin: 0;
+  color: var(--muted, #77817b);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.weekly-report-summary .stat-card:nth-child(2) strong {
+  font-size: clamp(15px, 2vw, 21px);
+}
+
 @media (max-width: 620px) {
   .technical-admin-staffing ul {
     grid-template-columns: 1fr;

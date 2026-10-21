@@ -1047,8 +1047,8 @@ router.get(
            FROM local_date
          )
          SELECT
-           rw.monday AS week_start,
-           rw.monday + 5 AS week_end,
+           rw.monday::text AS week_start,
+           (rw.monday + 5)::text AS week_end,
            COUNT(t.id) AS transaction_count,
            COALESCE(SUM(t.amount), 0) AS contribution_total
          FROM reporting_week rw
@@ -1175,7 +1175,7 @@ router.get(
                  )::integer - 1
                )
              )
-           ) AS week_start`,
+           )::text AS week_start`,
         [selectedMonday]
       );
 
