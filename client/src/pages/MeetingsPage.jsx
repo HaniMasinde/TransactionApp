@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import FeaturePage from '../components/FeaturePage.jsx'
 import {
+  deleteNextMeeting,
   getNextMeeting,
   saveNextMeeting,
 } from '../services/meetingsService.js'
@@ -41,6 +42,7 @@ export default function MeetingsPage({ user }) {
   const [notes, setNotes] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
@@ -106,6 +108,29 @@ export default function MeetingsPage({ user }) {
     }
   }
 
+  async function handleDelete() {
+    if (!meeting || !window.confirm(`Delete the upcoming meeting "${meeting.title}"?`)) {
+      return
+    }
+
+    setError('')
+    setSuccess('')
+    setDeleting(true)
+
+    try {
+      await deleteNextMeeting()
+      setMeeting(null)
+      setTitle('')
+      setMeetingAt('')
+      setNotes('')
+      setSuccess('Next meeting deleted.')
+    } catch (err) {
+      setError(err.message || 'Could not delete the next meeting.')
+    } finally {
+      setDeleting(false)
+    }
+  }
+
   const displayDate = getMeetingDate(meeting)
   const description = meeting?.description ?? meeting?.notes ?? meeting?.agenda
 
@@ -161,10 +186,21 @@ export default function MeetingsPage({ user }) {
             <button
               className="feature-button feature-button--primary"
               type="submit"
-              disabled={saving}
+              disabled={saving || deleting}
             >
               {saving ? 'Saving…' : 'Save next meeting'}
             </button>
+            {meeting && (
+              <button
+                className="feature-button"
+                type="button"
+                onClick={handleDelete}
+                disabled={saving || deleting}
+                style={{ marginLeft: '.5rem' }}
+              >
+                {deleting ? 'Deleting…' : 'Delete next meeting'}
+              </button>
+            )}
           </div>
         </form>
       ) : (

@@ -46,7 +46,8 @@ function csvCell(value) {
   return `"${String(value ?? '').replaceAll('"', '""')}"`
 }
 
-export default function ReportsPage() {
+export default function ReportsPage({ user }) {
+  const canExport = String(user?.role ?? '').toLowerCase() === 'treasurer'
   const [weekStart, setWeekStart] = useState(currentWeekMonday)
   const [report, setReport] = useState(null)
   const [members, setMembers] = useState([])
@@ -57,10 +58,6 @@ export default function ReportsPage() {
 
   useEffect(() => {
     let active = true
-    setLoading(true)
-    setGroupError('')
-    setMembersError('')
-    setSelectionError('')
 
     Promise.allSettled([
       getWeeklyGroupReport(weekStart),
@@ -105,6 +102,10 @@ export default function ReportsPage() {
       setSelectionError('Choose a Monday to load a weekly report.')
       return
     }
+    setLoading(true)
+    setGroupError('')
+    setMembersError('')
+    setSelectionError('')
     setWeekStart(value)
   }
 
@@ -140,7 +141,7 @@ export default function ReportsPage() {
         eyebrow="INSIGHTS & EXPORTS"
         title="Weekly contributions"
         description="Review active payment contributions for your group and each contributing member."
-        action={(
+        action={canExport ? (
           <button
             className="primary-button"
             type="button"
@@ -149,7 +150,7 @@ export default function ReportsPage() {
           >
             ↓ Export report
           </button>
-        )}
+        ) : null}
       />
 
       <section className="content-card weekly-report-controls">

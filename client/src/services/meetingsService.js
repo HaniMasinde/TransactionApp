@@ -10,3 +10,9 @@ export function saveNextMeeting({ title, startsAt, description = '', location = 
     body: JSON.stringify({ title, startsAt, description, location }),
   })
 }
+
+export function deleteNextMeeting() {
+  return apiRequest('/meetings/next', {
+    method: 'DELETE',
+  })
+}

@@ -211,4 +211,84 @@ router.put("/next", canManageMeetings, async (req, res, next) => {
   }
 });
 
+// DELETE /api/meetings/next
+// The chairperson may delete the next meeting if it has no recorded minutes.
+router.delete("/next", canManageMeetings, async (req, res, next) => {
+  const actorId = req.session.user.id;
+  let client;
+
+  try {
+    client = await getClient();
+    await client.query("BEGIN");
+    await client.query("LOCK TABLE meetings IN EXCLUSIVE MODE");
+
+    const existingResult = await client.query(
+      `SELECT *
+       FROM meetings
+       WHERE starts_at >= NOW()
+       ORDER BY starts_at ASC
+       LIMIT 1
+       FOR UPDATE`
+    );
+
+    if (existingResult.rowCount === 0) {
+      await client.query("ROLLBACK");
+
+      return res.status(404).json({
+        success: false,
+        message: "There is no upcoming meeting to delete.",
+      });
+    }
+
+    const meeting = existingResult.rows[0];
+    const minutesResult = await client.query(
+      "SELECT 1 FROM meeting_minutes WHERE meeting_id = $1 LIMIT 1",
+      [meeting.id]
+    );
+
+    if (minutesResult.rowCount > 0) {
+      await client.query("ROLLBACK");
+
+      return res.status(409).json({
+        success: false,
+        message: "This meeting has recorded minutes and cannot be deleted.",
+      });
+    }
+
+    await client.query("DELETE FROM meetings WHERE id = $1", [meeting.id]);
+    await client.query(
+      `INSERT INTO audit_logs (
+         actor_user_id,
+         action,
+         target_type,
+         target_id,
+         old_values
+       )
+       VALUES ($1, $2, $3, $4, $5::jsonb)`,
+      [
+        actorId,
+        "meeting_deleted",
+        "meeting",
+        meeting.id,
+        JSON.stringify(meeting),
+      ]
+    );
+
+    await client.query("COMMIT");
+
+    return res.status(200).json({
+      success: true,
+      message: "Next meeting deleted successfully.",
+    });
+  } catch (error) {
+    if (client) {
+      await client.query("ROLLBACK").catch(() => {});
+    }
+
+    return next(error);
+  } finally {
+    if (client) client.release();
+  }
+});
+
 module.exports = router;
