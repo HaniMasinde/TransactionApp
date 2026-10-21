@@ -1,18 +1,35 @@
 
-
 const express = require("express");
-const healthRoutes = require("./healthRoutes");
-
 const router = express.Router();
 
-router.get("/", (req, res) => {
-  res.status(200).json({
-    success: true,
-    message: "Welcome to the GCMS API",
-    version: "1.0.0",
-  });
-});
+const authRoutes = require("./authRoutes");
+const adminRoutes = require("./adminRoutes");
+const memberRoutes = require("./memberRoutes");
+const transactionRoutes = require("./transactionRoutes");
+const healthRoutes = require("./healthRoutes");
+const dashboardRoutes = require("./dashboardRoutes");
+const reportRoutes = require("./reportRoutes");
+const notificationRoutes = require("./notificationRoutes");
+const groupRulesRoutes = require("./groupRulesRoutes");
+const meetingRoutes = require("./meetingRoutes");
+const meetingMinutesRoutes = require("./meetingMinutesRoutes");
+const auditRoutes = require("./auditRoutes");
+const groupMembershipRoutes = require("./groupMembershipRoutes");
+const settingsRoutes = require("./settingsRoutes");
 
+router.use("/auth", authRoutes);
+router.use("/admin", adminRoutes);
+router.use("/members", memberRoutes);
+router.use("/transactions", transactionRoutes);
 router.use("/health", healthRoutes);
+router.use("/dashboard", dashboardRoutes);
+router.use("/reports", reportRoutes);
+router.use("/notifications", notificationRoutes);
+router.use("/group-rules", groupRulesRoutes);
+router.use("/meetings", meetingRoutes);
+router.use("/meeting-minutes", meetingMinutesRoutes);
+router.use("/audit", auditRoutes);
+router.use("/group-memberships", groupMembershipRoutes);
+router.use("/settings", settingsRoutes);
 
 module.exports = router;

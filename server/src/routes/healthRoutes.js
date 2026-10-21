@@ -1,23 +1,27 @@
-
 const express = require("express");
-const { pool } = require("../config/database");
+const { query } = require("../config/database");
 
 const router = express.Router();
 
+// GET /api/health
 router.get("/", async (req, res) => {
   try {
-    await pool.query("SELECT 1");
+    await query("SELECT 1");
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
-      message: "GCMS API and database are available",
+      message: "Application and database are healthy.",
+      database: "connected",
+      timestamp: new Date().toISOString(),
     });
   } catch (error) {
     console.error("Health check failed:", error.message);
 
-    res.status(503).json({
+    return res.status(503).json({
       success: false,
-      message: "Database is unavailable",
+      message: "Database is unavailable.",
+      database: "disconnected",
+      timestamp: new Date().toISOString(),
     });
   }
 });

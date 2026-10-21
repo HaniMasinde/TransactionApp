@@ -1,24 +1,58 @@
-
+require("dotenv").config();
 
 const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
+const session = require("express-session");
+const pgSession = require("connect-pg-simple")(session);
+const errorHandler = require("./middleware/errorHandler");
 
+const { pool } = require("./config/database");
 const apiRoutes = require("./routes");
 
 const app = express();
 
-app.use(helmet());
+if (!process.env.SESSION_SECRET) {
+  throw new Error("SESSION_SECRET must be configured");
+}
 
+// Trust the reverse proxy only in deployments that terminate HTTPS upstream.
+if (process.env.NODE_ENV === "production") {
+  app.set("trust proxy", 1);
+}
+app.use(helmet());
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL,
+    origin: process.env.CLIENT_ORIGIN || process.env.FRONTEND_URL,
     credentials: true,
   })
 );
 
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: false }));
+
+
+app.use(
+  session({
+    store: new pgSession({
+      pool,
+      tableName: "sessions",
+      createTableIfMissing: false,
+      pruneSessionInterval: 15 * 60, // Clean expired sessions every 15 minutes
+    }),
+    name: "transaction.sid",
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 30 * 60 * 1000 , // 30 minutes
+    },
+  })
+);
+
 
 app.use("/api", apiRoutes);
 
@@ -28,14 +62,13 @@ app.use((req, res) => {
     message: "API endpoint not found",
   });
 });
-
-app.use((error, req, res, next) => {
-  console.error("Unhandled request error:", error);
-
-  res.status(500).json({
+app.use((req, res) => {
+  res.status(404).json({
     success: false,
-    message: "Internal server error",
+    message: "API endpoint not found",
   });
 });
+
+app.use(errorHandler);
 
 module.exports = app;

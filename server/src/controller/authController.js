@@ -1,0 +1,70 @@
+"use strict";
+
+const authService = require("../services/authService");
+
+function getRegistrationFields(body) {
+  return {
+    fullName: body.fullName ?? body.full_name ?? body.name,
+    phone: body.phone,
+    recoveryEmail: body.recoveryEmail ?? body.recovery_email ?? body.email,
+    password: body.password,
+  };
+}
+
+function regenerateSession(session) {
+  return new Promise((resolve, reject) => {
+    session.regenerate((error) => error ? reject(error) : resolve());
+  });
+}
+
+function saveSession(session) {
+  return new Promise((resolve, reject) => {
+    session.save((error) => error ? reject(error) : resolve());
+  });
+}
+
+async function register(req, res, next) {
+  try {
+    const user = await authService.register(getRegistrationFields(req.body));
+
+    return res.status(201).json({
+      success: true,
+      message: "Registration submitted. Your account is awaiting approval.",
+      user: {
+        id: user.id,
+        fullName: user.full_name,
+        role: user.role,
+        accountStatus: user.account_status,
+      },
+    });
+  } catch (error) {
+    return next(error);
+  }
+}
+
+async function login(req, res, next) {
+  try {
+    const user = await authService.login({
+      phone: req.body.phone ?? req.body.phoneNumber ?? req.body.phone_number,
+      password: req.body.password,
+    });
+
+    if (!req.session) {
+      throw new Error("Session middleware is not available.");
+    }
+
+    await regenerateSession(req.session);
+    req.session.user = user;
+    await saveSession(req.session);
+
+    return res.status(200).json({
+      success: true,
+      message: "Login successful.",
+      user,
+    });
+  } catch (error) {
+    return next(error);
+  }
+}
+
+module.exports = { register, login };

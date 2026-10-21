@@ -1,0 +1,130 @@
+
+const express = require("express");
+const bcrypt = require("bcryptjs");
+const rateLimit = require("express-rate-limit");
+const { query } = require("../config/database");
+const validateRequest = require("../middleware/validateRequest");
+const authController = require("../controller/authController");
+const { requireAuth } = require("../middleware/auth");
+const {
+  validateRegistration,
+  validateLogin
+} = require("../validators/authValidator");
+
+const router = express.Router();
+
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    message: "Too many login attempts. Please try again later.",
+  },
+});
+
+const SESSION_COOKIE = "transaction.sid";
+
+const ALLOWED_STATUSES = new Set(["approved"]);
+
+function normalizeIdentifier(value) {
+  const identifier = String(value || "").trim();
+
+  if (identifier.includes("@")) {
+    return { email: identifier.toLowerCase(), phone: null };
+  }
+
+  // Preserve a leading + for international phone numbers.
+  const phone = identifier.replace(/[^\d+]/g, "");
+
+  return {
+    email: null,
+    phone: phone || null,
+  };
+}
+
+function publicUser(user) {
+  return {
+    id: user.id,
+    fullName: user.full_name,
+    role: user.role,
+  };
+}
+
+const registerLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    message: "Too many registration attempts. Please try again later.",
+  },
+});
+
+router.post(
+  "/register",
+  registerLimiter,
+  validateRequest(validateRegistration),
+  authController.register
+);
+// POST /api/auth/login
+router.post(
+  "/login",
+  loginLimiter,
+  validateRequest(validateLogin),
+  authController.login
+);
+
+// GET /api/auth/me
+router.get("/me",requireAuth, (req, res) => {
+  if (!req.session || !req.session.user) {
+    return res.status(401).json({
+      success: false,
+      message: "Authentication required.",
+    });
+  }
+
+  return res.status(200).json({
+    success: true,
+    user: req.session.user,
+  });
+});
+
+// POST /api/auth/logout
+router.post("/logout", (req, res, next) => {
+  if (!req.session) {
+    res.clearCookie(SESSION_COOKIE, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Logged out successfully.",
+    });
+  }
+
+  req.session.destroy((error) => {
+    res.clearCookie(SESSION_COOKIE, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+    });
+
+    if (error) {
+      return next(error);
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Logged out successfully.",
+    });
+  });
+});
+
+module.exports = router;

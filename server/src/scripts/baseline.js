@@ -1,7 +1,7 @@
 
 require("dotenv").config();
 
-const { pool } = require("../src/config/database");
+const { pool } = require("../config/database");
 
 async function baseline() {
   const client = await pool.connect();

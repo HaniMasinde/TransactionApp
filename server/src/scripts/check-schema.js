@@ -1,6 +1,6 @@
 require("dotenv").config();
 
-const { pool } = require("../src/config/database");
+const { pool } = require("../config/database");
 
 const expectedTables = [
   "users",

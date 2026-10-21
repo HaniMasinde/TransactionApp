@@ -1,0 +1,257 @@
+"use strict";
+
+require("dotenv").config();
+
+const bcrypt = require("bcryptjs");
+const readline = require("readline");
+const { pool } = require("../config/database");
+
+const CONFIRMATION_FLAG = "--confirm-initial-chairperson";
+const LOCK_KEY = "gcms_initial_chairperson_bootstrap";
+
+function ask(rl, prompt, { secret = false } = {}) {
+  return new Promise((resolve) => {
+    if (secret) {
+      rl.stdoutMuted = true;
+    }
+
+    rl.question(prompt, (answer) => {
+      if (secret) {
+        rl.stdoutMuted = false;
+        rl.output.write("\n");
+      }
+
+      resolve(answer);
+    });
+  });
+}
+
+function normalizePhone(value) {
+  return String(value || "").trim().replace(/[^\d+]/g, "");
+}
+
+function validPhone(phone) {
+  return /^\+?[0-9]{9,15}$/.test(phone);
+}
+
+function validEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+async function main() {
+  if (!process.argv.includes(CONFIRMATION_FLAG)) {
+    console.error(
+      `Setup blocked. To explicitly authorize initial chairperson setup, run:\n` +
+      `npm run seed:admin -- ${CONFIRMATION_FLAG}`
+    );
+    process.exitCode = 1;
+    return;
+  }
+
+  if (!process.stdin.isTTY || !process.stdout.isTTY) {
+    console.error("Run this script directly in an interactive terminal.");
+    process.exitCode = 1;
+    return;
+  }
+
+  if (!process.env.DATABASE_URL) {
+    console.error("DATABASE_URL is not configured.");
+    process.exitCode = 1;
+    return;
+  }
+
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+
+  // Hide password input while still accepting normal terminal input.
+  rl.stdoutMuted = false;
+  rl._writeToOutput = function (value) {
+    if (this.stdoutMuted) {
+      this.output.write(
+        value.replace(/[^\r\n]/g, "*")
+      );
+    } else {
+      this.output.write(value);
+    }
+  };
+
+  let client;
+  let transactionStarted = false;
+
+  try {
+    console.log("\n=== INITIAL GCMS CHAIRPERSON SETUP ===");
+    console.log("This is for first-time setup only.");
+    console.log("Do not use another person's credentials.\n");
+
+    const fullName = (await ask(rl, "Chairperson full name: ")).trim();
+    const phone = normalizePhone(await ask(rl, "Phone number: "));
+    const email = (
+      await ask(rl, "Recovery email: ")
+    ).trim().toLowerCase();
+
+    const password = await ask(rl, "New password (hidden): ", {
+      secret: true,
+    });
+    const confirmation = await ask(rl, "Confirm password (hidden): ", {
+      secret: true,
+    });
+
+    if (fullName.length < 2 || fullName.length > 120) {
+      throw new Error("Name must be between 2 and 120 characters.");
+    }
+
+    if (!validPhone(phone)) {
+      throw new Error("Enter a valid phone number with 9–15 digits.");
+    }
+
+    if (!validEmail(email) || email.length > 254) {
+      throw new Error("Enter a valid recovery email address.");
+    }
+
+    if (password.length < 10 || password.length > 128) {
+      throw new Error("Password must be between 10 and 128 characters.");
+    }
+
+    if (password !== confirmation) {
+      throw new Error("Passwords do not match.");
+    }
+
+    const accepted = (
+      await ask(
+        rl,
+        `\nCreate an APPROVED chairperson account for "${fullName}"? Type YES to continue: `
+      )
+    ).trim();
+
+    if (accepted !== "YES") {
+      console.log("Setup cancelled. No database changes were made.");
+      return;
+    }
+
+    // Hash before opening the transaction to keep the DB lock brief.
+    const passwordHash = await bcrypt.hash(password, 12);
+
+    client = await pool.connect();
+    await client.query("BEGIN");
+    transactionStarted = true;
+
+    // Serialize simultaneous attempts to bootstrap the first chairperson.
+    await client.query(
+      "SELECT pg_advisory_xact_lock(hashtext($1))",
+      [LOCK_KEY]
+    );
+
+    // Refuse to create another chairperson if any non-deleted chairperson
+    // record already exists, regardless of its account status.
+    const existingChairperson = await client.query(
+      `SELECT id
+         FROM users
+        WHERE role = 'chairperson'
+          AND deleted_at IS NULL
+        LIMIT 1`
+    );
+
+    if (existingChairperson.rowCount > 0) {
+      throw new Error(
+        "A non-deleted chairperson account already exists. " +
+        "Bootstrap refused; inspect the existing account instead."
+      );
+    }
+
+    const existingContact = await client.query(
+      `SELECT id
+         FROM users
+        WHERE deleted_at IS NULL
+          AND (
+            normalized_phone = $1
+            OR normalized_email = $2
+          )
+        LIMIT 1`,
+      [phone, email]
+    );
+
+    if (existingContact.rowCount > 0) {
+      throw new Error(
+        "That phone number or recovery email is already in use. " +
+        "No account was created."
+      );
+    }
+
+    const created = await client.query(
+      `INSERT INTO users (
+         full_name,
+         phone,
+         normalized_phone,
+         recovery_email,
+         normalized_email,
+         password_hash,
+         role,
+         account_status
+       )
+       VALUES ($1, $2, $3, $4, $5, $6, 'chairperson', 'approved')
+       RETURNING id, full_name, role, account_status`,
+      [fullName, phone, phone, email, email, passwordHash]
+    );
+
+    const user = created.rows[0];
+
+    // Bootstrap has no authenticated actor; actor_user_id is nullable.
+    // Do not put contact details or credentials into the audit record.
+    await client.query(
+      `INSERT INTO audit_logs (
+         actor_user_id,
+         action,
+         target_type,
+         target_id,
+         new_values
+       )
+       VALUES (
+         NULL,
+         'initial_chairperson_bootstrap',
+         'user',
+         $1,
+         $2::jsonb
+       )`,
+      [
+        user.id,
+        JSON.stringify({
+          role: user.role,
+          account_status: user.account_status,
+        }),
+      ]
+    );
+
+    await client.query("COMMIT");
+    transactionStarted = false;
+
+    console.log("\nInitial chairperson account created successfully.");
+    console.log("Account ID:", user.id);
+    console.log("Role:", user.role);
+    console.log("Status:", user.account_status);
+    console.log("The password was hashed; it is not stored as plain text.");
+    console.log("Keep the password private. It will not be displayed again.");
+  } catch (error) {
+    if (client && transactionStarted) {
+      try {
+        await client.query("ROLLBACK");
+      } catch (rollbackError) {
+        console.error("Rollback failed:", rollbackError.message);
+      }
+    }
+
+    console.error("\nSetup failed:", error.message);
+    process.exitCode = 1;
+  } finally {
+    rl.close();
+
+    if (client) {
+      client.release();
+    }
+
+    await pool.end();
+  }
+}
+
+main();
