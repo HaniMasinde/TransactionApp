@@ -10,6 +10,7 @@ import {
   Bell,
   ContactRound,
   Wallet,
+  ShieldCheck,
 } from 'lucide-react'
 import Avatar from '../components/ui/Avatar.jsx'
 
@@ -23,6 +24,7 @@ const navigationItems = [
   { key: 'meetings', label: 'Meetings', icon: CalendarDays },
   { key: 'minutes', label: 'Meeting Minutes', icon: ClipboardList },
   { key: 'notifications', label: 'Notifications', icon: Bell },
+  { key: 'technicalAdmin', label: 'Technical Administration', icon: ShieldCheck },
   { key: 'account', label: 'My Account', icon: Wallet },
   { key: 'profile', label: 'Profile', icon: ContactRound },
 ]
@@ -73,6 +75,11 @@ const roleNavigation = {
     'account',
     'profile',
   ],
+  technical_admin: [
+    'technicalAdmin',
+    'account',
+    'profile',
+],
 }
 
 export default function Sidebar({

@@ -2,8 +2,8 @@ import Avatar from './ui/Avatar.jsx'
 import StatusBadge from './ui/StatusBadge.jsx'
 import { formatCurrency } from '../utils/formatCurrency.js'
 
-export default function TransactionTable({ rows }) {
-  return <div className="table-wrap"><table><thead><tr><th>MEMBER</th><th>M-PESA CODE</th><th>DATE</th><th>AMOUNT</th><th>STATUS</th></tr></thead><tbody>
+export default function TransactionTable({ rows, canReverse = false, onReverse }) {
+  return <div className="table-wrap"><table><thead><tr><th>MEMBER</th><th>M-PESA CODE</th><th>DATE</th><th>AMOUNT</th><th>STATUS</th>{canReverse && <th>ACTION</th>}</tr></thead><tbody>
     {rows.map(row => {
       const name = row.entered_member_name || row.name || 'Unknown member'
       const reference = row.mpesa_reference || row.reference || '—'
@@ -20,6 +20,15 @@ export default function TransactionTable({ rows }) {
           <td>{date}</td>
           <td className="amount">{formatCurrency(row.amount)}</td>
           <td><StatusBadge tone={status === 'Reversed' ? 'danger' : 'success'}>{status}</StatusBadge></td>
+          {canReverse && (
+            <td>
+              {row.status === 'active' ? (
+                <button className="transaction-reverse-button" type="button" onClick={() => onReverse?.(row)}>
+                  Reverse
+                </button>
+              ) : <span className="transaction-action-muted">—</span>}
+            </td>
+          )}
         </tr>
       )
     })}

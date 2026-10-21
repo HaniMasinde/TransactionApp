@@ -106,7 +106,7 @@ router.get(
       if (role === "member") {
         result = await query(
           `SELECT id, member_user_id, entered_member_name,
-                  amount, paid_at, mpesa_reference, notes,
+                  amount, paid_at, mpesa_reference, status, notes,
                   created_at, updated_at
            FROM transactions
            WHERE member_user_id = $1
@@ -118,10 +118,10 @@ router.get(
       } else {
         result = await query(
           `SELECT id, member_user_id, entered_member_name,
-                  amount, paid_at, mpesa_reference, notes,
+                  amount, paid_at, mpesa_reference, status, notes,
                   created_at, updated_at
            FROM transactions
-           WHERE status = 'active'
+           WHERE status IN ('active', 'reversed')
            ORDER BY paid_at DESC
            LIMIT $1 OFFSET $2`,
           [limit, offset]

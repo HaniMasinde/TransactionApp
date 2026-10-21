@@ -23,15 +23,19 @@ export async function getUnreadNotificationCount() {
   )
 }
 
-export function markNotificationRead(id) {
-  return apiRequest(
+export async function markNotificationRead(id) {
+  const result = await apiRequest(
     `/notifications/${encodeURIComponent(id)}/read`,
     { method: 'PATCH' },
   )
+  window.dispatchEvent(new Event('notifications:changed'))
+  return result
 }
 
-export function markAllNotificationsRead() {
-  return apiRequest('/notifications/read-all', {
+export async function markAllNotificationsRead() {
+  const result = await apiRequest('/notifications/read-all', {
     method: 'PATCH',
   })
+  window.dispatchEvent(new Event('notifications:changed'))
+  return result
 }

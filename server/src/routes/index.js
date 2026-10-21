@@ -16,6 +16,7 @@ const meetingMinutesRoutes = require("./meetingMinutesRoutes");
 const auditRoutes = require("./auditRoutes");
 const groupMembershipRoutes = require("./groupMembershipRoutes");
 const settingsRoutes = require("./settingsRoutes");
+const technicalAdminRoutes = require("./technicalAdminRoutes");
 
 router.use("/auth", authRoutes);
 router.use("/admin", adminRoutes);
@@ -31,5 +32,6 @@ router.use("/meeting-minutes", meetingMinutesRoutes);
 router.use("/audit", auditRoutes);
 router.use("/group-memberships", groupMembershipRoutes);
 router.use("/settings", settingsRoutes);
+router.use("/technical-admin", technicalAdminRoutes);
 
 module.exports = router;

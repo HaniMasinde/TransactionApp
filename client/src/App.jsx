@@ -16,6 +16,7 @@ import NotificationsPage from './pages/NotificationsPage.jsx'
 import ProfilePage from './pages/ProfilePage.jsx'
 import RegisterPage from './pages/RegisterPage.jsx'
 import LandingPage from './pages/LandingPage.jsx'
+import TechnicalAdminPage from './pages/TechnicalAdminPage.jsx'
 
 const pageComponents = {
   dashboard: DashboardPage,
@@ -29,6 +30,7 @@ const pageComponents = {
   minutes: MeetingMinutesPage,
   notifications: NotificationsPage,
   profile: ProfilePage,
+  technicalAdmin: TechnicalAdminPage,
 }
 
 function defaultPageFor(user) {
@@ -114,13 +116,19 @@ export default function App() {
     }
 
     if (authPage === 'register') {
-      return <RegisterPage onLogin={() => setAuthPage('login')} />
+      return (
+        <RegisterPage
+          onLogin={() => setAuthPage('login')}
+          onHome={() => setAuthPage('landing')}
+        />
+      )
     }
 
     return (
       <LoginPage
         onLogin={handleLogin}
         onRegister={() => setAuthPage('register')}
+        onHome={() => setAuthPage('landing')}
       />
     )
   }
@@ -143,6 +151,9 @@ export default function App() {
     secretary: [
       'members', 'groupRules', 'meetings', 'minutes',
       'notifications', 'account', 'profile',
+    ],
+    technical_admin: [
+      'technicalAdmin','account','profile',
     ],
   }
 

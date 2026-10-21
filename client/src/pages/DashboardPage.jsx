@@ -26,10 +26,11 @@ function getUserName(user) {
 }
 
 function getOverviewStats(overview, role) {
+  const dashboard = overview?.dashboard || overview || {}
   const contributions =
-    overview?.contributions || overview || {}
+    dashboard.contributions || dashboard
 
-  const members = overview?.members || {}
+  const members = dashboard.members || {}
 
   if (role === 'member') {
     return [
@@ -77,9 +78,7 @@ function getOverviewStats(overview, role) {
     {
       label: 'Approved members',
       value: Number(
-        members.approved_members ??
-          contributions.contributing_member_count ??
-          0,
+        members.approved_members ?? 0,
       ).toLocaleString('en-KE'),
       detail: 'Approved group members',
     },

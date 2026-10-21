@@ -116,7 +116,8 @@ router.get("/overview", canViewDashboard, async (req, res, next) => {
            )::int AS disabled_members
 
          FROM users
-         WHERE deleted_at IS NULL`
+         WHERE role = 'member'
+           AND deleted_at IS NULL`
       ),
     ]);
 

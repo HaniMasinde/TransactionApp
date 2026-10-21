@@ -1,7 +1,8 @@
 
 import { useState } from 'react'
+import AuthLayout from '../components/AuthLayout.jsx'
 
-export default function LoginPage({ onLogin, onRegister }) {
+export default function LoginPage({ onLogin, onRegister, onHome }) {
   const [phone, setPhone] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -25,20 +26,13 @@ export default function LoginPage({ onLogin, onRegister }) {
   }
 
   return (
-    <main className="auth-screen">
-      <section className="auth-card">
-        <a className="brand auth-brand" href="/" aria-label="Gather home">
-          <span className="brand-mark">g</span>
-          gather<span className="brand-period">.</span>
-        </a>
-
-        <span className="eyebrow">WELCOME BACK</span>
-        <h1>Sign in to your account</h1>
-        <p className="auth-description">
-          Access your group contributions and account.
-        </p>
-
-        <form className="auth-form" onSubmit={handleSubmit}>
+    <AuthLayout
+      eyebrow="WELCOME BACK"
+      title="Sign in to your account"
+      description="Access your group contributions and account."
+      onHome={onHome}
+    >
+      <form className="auth-form" onSubmit={handleSubmit}>
           <label htmlFor="login-phone">Phone number</label>
           <input
             id="login-phone"
@@ -76,23 +70,22 @@ export default function LoginPage({ onLogin, onRegister }) {
           >
             {submitting ? 'Signing in…' : 'Sign in'}
           </button>
-        </form>
+      </form>
 
-        <p className="auth-footnote">
-          Don't have an account?{' '}
-          <button
-            type="button"
-            className="link-button"
-            onClick={onRegister}
-          >
-            Create an account
-          </button>
-        </p>
+      <p className="auth-footnote">
+        Don't have an account?{' '}
+        <button
+          type="button"
+          className="link-button"
+          onClick={onRegister}
+        >
+          Create an account
+        </button>
+      </p>
 
-        <p className="auth-footnote">
-          Your account access is managed by your group.
-        </p>
-      </section>
-    </main>
+      <p className="auth-footnote">
+        Your account access is managed by your group.
+      </p>
+    </AuthLayout>
   )
 }

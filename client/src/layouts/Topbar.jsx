@@ -1,10 +1,13 @@
-import { Menu } from 'lucide-react'
+import { Bell, Menu } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { getUnreadNotificationCount } from '../services/notificationService.js'
 
 function displayName(user) {
   return user?.fullName || user?.name || user?.full_name || 'Account'
 }
 
-export default function Topbar({ title, user, onLogout, onMenuClick }) {
+export default function Topbar({ title, user, onLogout, onMenuClick, onNavigate, page }) {
+  const [unreadCount, setUnreadCount] = useState(0)
   const name = displayName(user)
   const initials = name
     .split(/\s+/)
@@ -12,6 +15,31 @@ export default function Topbar({ title, user, onLogout, onMenuClick }) {
     .slice(0, 2)
     .join('')
     .toUpperCase()
+
+  useEffect(() => {
+    let active = true
+
+    async function refreshUnreadCount() {
+      try {
+        const count = await getUnreadNotificationCount()
+        if (active) setUnreadCount(count)
+      } catch {
+        if (active) setUnreadCount(0)
+      }
+    }
+
+    refreshUnreadCount()
+    const interval = window.setInterval(refreshUnreadCount, 30000)
+    window.addEventListener('focus', refreshUnreadCount)
+    window.addEventListener('notifications:changed', refreshUnreadCount)
+
+    return () => {
+      active = false
+      window.clearInterval(interval)
+      window.removeEventListener('focus', refreshUnreadCount)
+      window.removeEventListener('notifications:changed', refreshUnreadCount)
+    }
+  }, [page])
 
   return (
     <header className="topbar">
@@ -33,6 +61,20 @@ export default function Topbar({ title, user, onLogout, onMenuClick }) {
         </nav>
       </div>
       <div className="topbar-actions">
+        <button
+          className="notification-shortcut"
+          type="button"
+          aria-label={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : 'Notifications'}
+          title="Notifications"
+          onClick={() => onNavigate?.('notifications')}
+        >
+          <Bell size={19} aria-hidden="true" />
+          {unreadCount > 0 && (
+            <span className="notification-shortcut-count" aria-hidden="true">
+              {unreadCount > 99 ? '99+' : unreadCount}
+            </span>
+          )}
+        </button>
         <span className="topbar-identity">
           <span className="avatar avatar-green">{initials}</span>
           <span>{name}</span>

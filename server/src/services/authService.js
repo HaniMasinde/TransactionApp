@@ -1,7 +1,7 @@
 "use strict";
 
 const bcrypt = require("bcryptjs");
-const { query } = require("../config/database");
+const { getClient, query } = require("../config/database");
 
 function authError(message, statusCode) {
   const error = new Error(message);
@@ -19,8 +19,13 @@ async function register({ fullName, phone, recoveryEmail, password }) {
   const email = String(recoveryEmail || "").trim().toLowerCase();
   const passwordHash = await bcrypt.hash(password, 12);
 
+  let client;
+
   try {
-    const result = await query(
+    client = await getClient();
+    await client.query("BEGIN");
+
+    const result = await client.query(
       `INSERT INTO users (
          full_name, phone, normalized_phone,
          recovery_email, normalized_email,
@@ -31,8 +36,25 @@ async function register({ fullName, phone, recoveryEmail, password }) {
       [name, normalizedPhone, normalizedPhone, email, email, passwordHash]
     );
 
-    return result.rows[0];
+    const user = result.rows[0];
+
+    await client.query(
+      `INSERT INTO notifications (
+         recipient_user_id, event_type, title, message
+       )
+       SELECT id, 'pending_approval', 'Member approval needed', $1
+       FROM users
+       WHERE role = 'chairperson'
+         AND account_status = 'approved'
+         AND deleted_at IS NULL`,
+      [`${user.full_name} has registered and is awaiting approval.`]
+    );
+
+    await client.query("COMMIT");
+    return user;
   } catch (error) {
+    if (client) await client.query("ROLLBACK").catch(() => {});
+
     if (error.code === "23505") {
       throw authError(
         "An account with that phone number or recovery email already exists.",
@@ -40,6 +62,8 @@ async function register({ fullName, phone, recoveryEmail, password }) {
       );
     }
     throw error;
+  } finally {
+    if (client) client.release();
   }
 }
 

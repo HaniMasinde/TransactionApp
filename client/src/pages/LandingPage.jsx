@@ -1,7 +1,6 @@
 import {
   ArrowRight,
   CalendarDays,
-  Check,
   ClipboardList,
   HandCoins,
   UsersRound,
@@ -10,18 +9,18 @@ import {
 const features = [
   {
     icon: HandCoins,
-    title: 'Track contributions',
-    description: 'Keep payment records organized and easy to review.',
+    title: 'See the full picture',
+    description: 'Keep contributions clear, organized, and easy to follow.',
   },
   {
     icon: UsersRound,
-    title: 'Manage membership',
-    description: 'Give members and group officers the right tools for their role.',
+    title: 'Bring people closer',
+    description: 'Give every member and officer a place in the conversation.',
   },
   {
     icon: CalendarDays,
-    title: 'Stay in sync',
-    description: 'Keep meetings, minutes, and group updates together.',
+    title: 'Keep plans in motion',
+    description: 'Bring meetings, minutes, and updates into one shared space.',
   },
 ]
 
@@ -52,67 +51,66 @@ export default function LandingPage({ onLogin, onRegister }) {
 
       <section className="landing-hero">
         <div className="landing-copy">
-          <span className="landing-kicker"><span /> MADE FOR YOUR COMMUNITY</span>
-          <h1>Good things happen when a group <em>grows together.</em></h1>
+          <span className="landing-kicker"><span /> YOUR COMMUNITY, IN ONE PLACE</span>
+          <h1>Bring your people together. <em>Move forward.</em></h1>
           <p>
-            Gather gives your group one clear place to manage contributions,
-            membership, meetings, and the details that keep everyone connected.
+            Make contributions easier to follow, keep everyone connected, and
+            turn group plans into shared progress.
           </p>
-          <div className="landing-actions">
-            <a
-              className="primary-button landing-primary"
-              href="#sign-up"
-              onClick={event => follow(event, onRegister)}
-            >
-              Get started <ArrowRight size={17} />
-            </a>
-            <a
-              className="landing-login-link"
-              href="#login"
-              onClick={event => follow(event, onLogin)}
-            >
-              I already have an account
-            </a>
-          </div>
-          <div className="landing-assurance">
-            <span className="landing-check"><Check size={14} /></span>
-            Built for the way community groups work
+          <div className="landing-proof">
+            <span className="landing-proof-dot" />
+            <span>Contributions</span>
+            <i />
+            <span>People</span>
+            <i />
+            <span>Plans</span>
           </div>
         </div>
 
-        <div className="landing-visual" aria-label="Gather group workspace preview">
+        <div className="landing-visual" aria-label="A preview of the Gather community workspace">
           <div className="landing-orbit landing-orbit-one" />
           <div className="landing-orbit landing-orbit-two" />
+          <div className="landing-orbit-track" aria-hidden="true">
+            <span className="landing-orbit-tag orbit-tag-one">
+              <HandCoins size={14} /> Contributions
+            </span>
+            <span className="landing-orbit-tag orbit-tag-two">
+              <UsersRound size={14} /> Members
+            </span>
+            <span className="landing-orbit-tag orbit-tag-three">
+              <CalendarDays size={14} /> Meetings
+            </span>
+          </div>
           <div className="workspace-preview">
             <div className="workspace-preview-top">
               <span className="workspace-logo">g</span>
               <div>
-                <strong>Your group workspace</strong>
-                <small>Everything in one place</small>
+                <strong>Your community hub</strong>
+                <small>Good things, growing together</small>
               </div>
-              <span className="workspace-menu">•••</span>
+              <span className="workspace-status"><i /> IN SYNC</span>
             </div>
             <div className="workspace-preview-rule" />
             <div className="workspace-items">
               <div className="workspace-item">
                 <span className="workspace-item-icon icon-contributions"><HandCoins size={18} /></span>
-                <span><strong>Contributions</strong><small>Records and reports</small></span>
+                <span><strong>Shared contributions</strong><small>Clear records for everyone</small></span>
                 <ArrowRight size={15} />
               </div>
               <div className="workspace-item">
                 <span className="workspace-item-icon icon-members"><UsersRound size={18} /></span>
-                <span><strong>Members</strong><small>People in your group</small></span>
+                <span><strong>Your community</strong><small>People at the heart of it all</small></span>
                 <ArrowRight size={15} />
               </div>
               <div className="workspace-item">
                 <span className="workspace-item-icon icon-meetings"><CalendarDays size={18} /></span>
-                <span><strong>Meetings</strong><small>Plans and minutes</small></span>
+                <span><strong>Plans that move</strong><small>Meetings, notes, and next steps</small></span>
                 <ArrowRight size={15} />
               </div>
             </div>
             <div className="workspace-note">
               <span><ClipboardList size={17} /></span>
-              <p><strong>Clear records.</strong> Confident decisions.</p>
+              <p><strong>One group.</strong> Moving as one.</p>
             </div>
           </div>
           <span className="landing-spark landing-spark-one">✳</span>
@@ -122,8 +120,9 @@ export default function LandingPage({ onLogin, onRegister }) {
 
       <section className="landing-features" aria-labelledby="landing-features-title">
         <div className="landing-section-heading">
-          <span className="eyebrow">ONE SIMPLE WORKSPACE</span>
-          <h2 id="landing-features-title">Everything your group needs to move forward.</h2>
+          <span className="eyebrow">MADE FOR THE WAY GROUPS GROW</span>
+          <h2 id="landing-features-title">Less scattered. More together.</h2>
+          <p>Bring the everyday pieces of your community into one clear view.</p>
         </div>
         <div className="landing-feature-grid">
           {features.map(({ icon: Icon, title, description }) => (

@@ -1,8 +1,9 @@
 
 import { useState } from 'react'
 import { registerAccount } from '../services/authService.js'
+import AuthLayout from '../components/AuthLayout.jsx'
 
-export default function RegisterPage({ onLogin }) {
+export default function RegisterPage({ onLogin, onHome }) {
   const [fullName, setFullName] = useState('')
   const [phone, setPhone] = useState('')
   const [recoveryEmail, setRecoveryEmail] = useState('')
@@ -49,20 +50,13 @@ export default function RegisterPage({ onLogin }) {
   }
 
   return (
-    <main className="auth-screen">
-      <section className="auth-card">
-        <a className="brand auth-brand" href="/" aria-label="Gather home">
-          <span className="brand-mark">g</span>
-          gather<span className="brand-period">.</span>
-        </a>
-
-        <span className="eyebrow">GET STARTED</span>
-        <h1>Create your account</h1>
-        <p className="auth-description">
-          Register to access your group's contributions and activities.
-        </p>
-
-        <form className="auth-form" onSubmit={handleSubmit}>
+    <AuthLayout
+      eyebrow="GET STARTED"
+      title="Create your account"
+      description="Register to access your group's contributions and activities."
+      onHome={onHome}
+    >
+      <form className="auth-form" onSubmit={handleSubmit}>
           <label htmlFor="register-name">Full name</label>
           <input
             id="register-name"
@@ -144,19 +138,18 @@ export default function RegisterPage({ onLogin }) {
           >
             {submitting ? 'Creating account…' : 'Create account'}
           </button>
-        </form>
+      </form>
 
-        <p className="auth-footnote">
-          Already registered?{' '}
-          <button
-            type="button"
-            className="link-button"
-            onClick={onLogin}
-          >
-            Sign in
-          </button>
-        </p>
-      </section>
-    </main>
+      <p className="auth-footnote">
+        Already registered?{' '}
+        <button
+          type="button"
+          className="link-button"
+          onClick={onLogin}
+        >
+          Sign in
+        </button>
+      </p>
+    </AuthLayout>
   )
 }

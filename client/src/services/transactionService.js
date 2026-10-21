@@ -19,3 +19,21 @@ export async function getTransactions(params = {}) {
     pagination: result.pagination ?? null,
   }
 } 
+
+export async function createTransaction(details) {
+  const result = await apiRequest('/transactions', {
+    method: 'POST',
+    body: JSON.stringify(details),
+  })
+
+  return result.transaction
+}
+
+export async function reverseTransaction(id, reason) {
+  const result = await apiRequest(`/transactions/${encodeURIComponent(id)}/reverse`, {
+    method: 'PATCH',
+    body: JSON.stringify({ reason }),
+  })
+
+  return result.transaction
+}

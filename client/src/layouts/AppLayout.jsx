@@ -14,6 +14,7 @@ const titles = {
   minutes: 'Meeting minutes',
   notifications: 'Notifications',
   profile: 'Profile',
+  technicalAdmin: 'Technical Administration',
 }
 
 export default function AppLayout({
@@ -47,6 +48,8 @@ export default function AppLayout({
           title={titles[page] || 'Workspace'}
           user={user}
           onLogout={onLogout}
+          onNavigate={onNavigate}
+          page={page}
           onMenuClick={() => setMobileNavOpen(open => !open)}
         />
         <div className="page-content" id="main-content">
