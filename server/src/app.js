@@ -1,4 +1,6 @@
-require("dotenv").config();
+const path = require("node:path");
+
+require("dotenv").config({ path: path.resolve(__dirname, "../.env") });
 
 const express = require("express");
 const cors = require("cors");
@@ -56,12 +58,6 @@ app.use(
 
 app.use("/api", apiRoutes);
 
-app.use((req, res) => {
-  res.status(404).json({
-    success: false,
-    message: "API endpoint not found",
-  });
-});
 app.use((req, res) => {
   res.status(404).json({
     success: false,

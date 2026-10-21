@@ -1,15 +1,147 @@
-const links = [
-  ['dashboard', '▦', 'Overview'], ['transactions', '↗', 'Transactions'],
-  ['members', '♙', 'Members'], ['approvals', '✓', 'Approvals'],
-  ['reports', '▤', 'Reports'], ['account', '⚙', 'Account settings'],
+import {
+  LayoutDashboard,
+  ArrowLeftRight,
+  Users,
+  UserCheck,
+  ChartNoAxesCombined,
+  FileText,
+  CalendarDays,
+  ClipboardList,
+  Bell,
+  ContactRound,
+  Wallet,
+} from 'lucide-react'
+import Avatar from '../components/ui/Avatar.jsx'
+
+const navigationItems = [
+  { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { key: 'transactions', label: 'Transactions', icon: ArrowLeftRight },
+  { key: 'members', label: 'Members', icon: Users },
+  { key: 'approvals', label: 'Member Approvals', icon: UserCheck },
+  { key: 'reports', label: 'Reports', icon: ChartNoAxesCombined },
+  { key: 'groupRules', label: 'Group Rules', icon: FileText },
+  { key: 'meetings', label: 'Meetings', icon: CalendarDays },
+  { key: 'minutes', label: 'Meeting Minutes', icon: ClipboardList },
+  { key: 'notifications', label: 'Notifications', icon: Bell },
+  { key: 'account', label: 'My Account', icon: Wallet },
+  { key: 'profile', label: 'Profile', icon: ContactRound },
 ]
 
-export default function Sidebar({ page, onNavigate }) {
-  return <aside className="sidebar">
-    <a className="brand" href="#dashboard" onClick={event => { event.preventDefault(); onNavigate('dashboard') }}><span className="brand-mark">g</span> gather<span className="brand-period">.</span></a>
-    <div className="group-card"><span className="group-symbol">U</span><span><b>Umoja Welfare</b><small>Community group</small></span></div>
-    <span className="side-label">WORKSPACE</span>
-    <nav className="side-nav" aria-label="Main navigation">{links.map(([key, icon, label]) => <button key={key} className={page === key ? 'nav-link selected' : 'nav-link'} onClick={() => onNavigate(key)}><span>{icon}</span>{label}{key === 'approvals' && <i>3</i>}</button>)}</nav>
-    <div className="sidebar-bottom"><div className="help-card"><b>Need a hand?</b><small>Visit our help center</small></div><div className="sidebar-user"><span className="avatar avatar-green">JO</span><span><b>James Otieno</b><small>Treasurer</small></span></div></div>
-  </aside>
+const roleNavigation = {
+  member: [
+    'dashboard',
+    'transactions',
+    'members',
+    'groupRules',
+    'meetings',
+    'minutes',
+    'notifications',
+    'account',
+    'profile',
+  ],
+  treasurer: [
+    'dashboard',
+    'transactions',
+    'members',
+    'reports',
+    'groupRules',
+    'meetings',
+    'minutes',
+    'notifications',
+    'account',
+    'profile',
+  ],
+  chairperson: [
+    'dashboard',
+    'transactions',
+    'members',
+    'approvals',
+    'reports',
+    'groupRules',
+    'meetings',
+    'minutes',
+    'notifications',
+    'account',
+    'profile',
+  ],
+  secretary: [
+    'members',
+    'groupRules',
+    'meetings',
+    'minutes',
+    'notifications',
+    'account',
+    'profile',
+  ],
+}
+
+export default function Sidebar({
+  page,
+  onNavigate,
+  user,
+  role,
+  onClose,
+  mobileOpen = false,
+}) {
+  const userRole = String(role || user?.role || 'member')
+    .toLowerCase()
+    .replace(/\s+/g, '')
+
+  const allowedItems =
+    roleNavigation[userRole] || roleNavigation.member
+
+  const visibleItems = navigationItems.filter((item) =>
+    allowedItems.includes(item.key),
+  )
+  const displayName = user?.fullName || user?.full_name || user?.name || 'Account'
+  const displayRole = String(user?.role || 'member').replace(/([A-Z])/g, ' $1')
+
+  return (
+    <aside className={`sidebar${mobileOpen ? ' sidebar-open' : ''}`}>
+      <a className="sidebar-brand" href="#main-content" onClick={onClose}>
+        <span className="sidebar-brand-icon"><Wallet size={21} /></span>
+        <span className="sidebar-brand-text">
+          <strong>Gather<span>.</span></strong>
+          <small>Umoja Welfare</small>
+        </span>
+      </a>
+
+      <nav id="app-navigation" className="sidebar-navigation" aria-label="Main navigation">
+        <p className="sidebar-section-title">MAIN MENU</p>
+        <ul>
+          {visibleItems.map((item) => {
+            const Icon = item.icon
+            const active = page === item.key
+
+            return (
+              <li key={item.key}>
+                <button
+                  type="button"
+                  className={`sidebar-nav-item${active ? ' active' : ''}`}
+                  onClick={() => {
+                    onNavigate?.(item.key)
+                    onClose?.()
+                  }}
+                  aria-current={active ? 'page' : undefined}
+                >
+                  <Icon size={18} strokeWidth={1.8} />
+                  <span>{item.label}</span>
+                </button>
+              </li>
+            )
+          })}
+        </ul>
+      </nav>
+
+      <div className="sidebar-footer">
+        <div className="sidebar-user">
+          <Avatar name={displayName} />
+          <span className="sidebar-user-copy">
+            <strong>{displayName}</strong>
+            <small>{displayRole}</small>
+          </span>
+        </div>
+      </div>
+    </aside>
+  )
 }
