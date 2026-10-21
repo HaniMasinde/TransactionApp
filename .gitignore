@@ -1,0 +1,15 @@
+# Secrets and environment variables
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+
+# Dependencies and generated files
+node_modules/
+**/node_modules/
+client/dist/
+server/dist/
+*.log
+.DS_Store
