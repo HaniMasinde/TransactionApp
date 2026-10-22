@@ -13,7 +13,6 @@ const assignableRoles = [
 ]
 const staffingRequirements = [
   { role: 'chairperson', label: 'Chairpersons', minimum: 2 },
-  { role: 'secretary', label: 'Secretaries', minimum: 2 },
   { role: 'treasurer', label: 'Treasurers', minimum: 1 },
 ]
 
@@ -135,17 +134,14 @@ export default function TechnicalAdminPage({ user: currentUser }) {
 
       <section className="technical-admin-staffing" aria-label="Officer staffing targets">
         <h2>Staffing targets</h2>
+        <p>Secretary is optional; the group can operate without one assigned.</p>
         <ul>
           {staffing.map(item => (
             <li key={item.role}>
               <span>{item.label}</span>
               <strong>{item.count} / {item.minimum}</strong>
               {item.shortfall > 0 && (
-                <small>
-                  {item.role === 'secretary'
-                    ? `${item.shortfall} below target`
-                    : `Assign ${item.shortfall} more`}
-                </small>
+                <small>Assign {item.shortfall} more</small>
               )}
             </li>
           ))}

@@ -105,7 +105,7 @@ router.patch("/users/:id/role", async (req, res, next) => {
     client = await pool.connect();
     await client.query("BEGIN");
 
-    // Serialize role changes so simultaneous updates cannot bypass staffing minimums.
+    // Serialize role changes so concurrent updates cannot bypass staffing rules.
     await client.query(
       "SELECT pg_advisory_xact_lock(hashtext($1))",
       ["gcms_technical_admin_role_assignment"]
