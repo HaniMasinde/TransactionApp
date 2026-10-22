@@ -132,7 +132,10 @@ router.post("/", canManageMinutes, async (req, res, next) => {
     await client.query("BEGIN");
 
     const meetingResult = await client.query(
-      "SELECT id FROM meetings WHERE id = $1",
+      `SELECT id, starts_at < NOW() AS has_taken_place
+       FROM meetings
+       WHERE id = $1
+       FOR SHARE`,
       [meetingId]
     );
 
@@ -142,6 +145,15 @@ router.post("/", canManageMinutes, async (req, res, next) => {
       return res.status(404).json({
         success: false,
         message: "The specified meeting does not exist.",
+      });
+    }
+
+    if (!meetingResult.rows[0].has_taken_place) {
+      await client.query("ROLLBACK");
+
+      return res.status(409).json({
+        success: false,
+        message: "Minutes can only be recorded after the meeting has taken place.",
       });
     }
 
@@ -239,6 +251,25 @@ router.put("/:id", canManageMinutes, async (req, res, next) => {
     }
 
     const oldMinutes = existingResult.rows[0];
+    const meetingResult = await client.query(
+      `SELECT starts_at < NOW() AS has_taken_place
+       FROM meetings
+       WHERE id = $1
+       FOR SHARE`,
+      [oldMinutes.meeting_id]
+    );
+
+    if (
+      meetingResult.rowCount === 0 ||
+      !meetingResult.rows[0].has_taken_place
+    ) {
+      await client.query("ROLLBACK");
+
+      return res.status(409).json({
+        success: false,
+        message: "Minutes can only be updated after the meeting has taken place.",
+      });
+    }
 
     const updatedResult = await client.query(
       `UPDATE meeting_minutes

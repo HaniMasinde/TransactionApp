@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { CalendarDays, Save } from 'lucide-react'
 import FeaturePage from '../components/FeaturePage.jsx'
 import {
   deleteNextMeeting,
@@ -38,17 +39,32 @@ export default function MeetingsPage({ user }) {
   const canEdit = String(user?.role ?? '').toLowerCase() === 'chairperson'
 
   const [meeting, setMeeting] = useState(null)
+  const meetingAtInputRef = useRef(null)
   const [title, setTitle] = useState('')
   const [meetingAt, setMeetingAt] = useState('')
   const [notes, setNotes] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
   useAutoDismiss(error, setError)
   useAutoDismiss(success, setSuccess)
+
+  function openMeetingDatePicker() {
+    const input = meetingAtInputRef.current
+    if (!input) return
+
+    if (typeof input.showPicker === 'function') {
+      input.showPicker()
+      return
+    }
+
+    input.focus()
+    input.click()
+  }
 
   useEffect(() => {
     let active = true
@@ -77,6 +93,22 @@ export default function MeetingsPage({ user }) {
 
   async function handleSave(event) {
     event.preventDefault()
+    await saveMeeting({
+      title: title.trim(),
+      description: notes.trim() || null,
+      clearForm: true,
+    })
+  }
+
+  async function handleSaveMeetingDateTime() {
+    await saveMeeting({
+      title: title.trim() || meeting?.title || '',
+      description: notes.trim() || meeting?.description || null,
+      clearForm: false,
+    })
+  }
+
+  async function saveMeeting({ title: meetingTitle, description: meetingDescription, clearForm }) {
     setError('')
     setSuccess('')
     setSaving(true)
@@ -91,20 +123,32 @@ export default function MeetingsPage({ user }) {
 
     try {
       const payload = await saveNextMeeting({
-        title: title.trim(),
+        title: meetingTitle,
         startsAt: startsAt.toISOString(),
-        description: notes.trim() || null,
+        description: meetingDescription,
         location: meeting?.location ?? null,
       })
 
       const savedMeeting = getMeeting(payload)
-      setMeeting(savedMeeting || {
-        title: title.trim(),
+      const persistedMeeting = savedMeeting || {
+        title: meetingTitle,
         startsAt: startsAt.toISOString(),
-        description: notes.trim(),
+        description: meetingDescription,
         location: meeting?.location ?? null,
-      })
-      setSuccess('Next meeting updated.')
+      }
+      setMeeting(persistedMeeting)
+      if (clearForm) {
+        setTitle('')
+        setMeetingAt('')
+        setNotes('')
+      } else {
+        setMeetingAt(toLocalDateTime(getMeetingDate(persistedMeeting)))
+      }
+      setSuccess(
+        clearForm
+          ? 'Next meeting updated.'
+          : 'Meeting date and time saved.',
+      )
     } catch (err) {
       setError(err.message || 'Could not save the meeting.')
     } finally {
@@ -113,10 +157,9 @@ export default function MeetingsPage({ user }) {
   }
 
   async function handleDelete() {
-    if (!meeting || !window.confirm(`Delete the upcoming meeting "${meeting.title}"?`)) {
-      return
-    }
+    if (!meeting?.id) return
 
+    setConfirmingDelete(false)
     setError('')
     setSuccess('')
     setDeleting(true)
@@ -135,8 +178,46 @@ export default function MeetingsPage({ user }) {
     }
   }
 
+  function requestDelete() {
+    if (meeting?.id) setConfirmingDelete(true)
+  }
+
   const displayDate = getMeetingDate(meeting)
+  const hasSavedMeeting = Boolean(meeting?.id)
   const description = meeting?.description ?? meeting?.notes ?? meeting?.agenda
+  const meetingDetails = (
+    <section className="feature-card meeting-details">
+      {meeting ? (
+        <>
+          <h2>{meeting.title || 'Group meeting'}</h2>
+          {displayDate && (
+            <p className="meeting-details__date">
+              {new Date(displayDate).toLocaleString('en-KE', {
+                dateStyle: 'full',
+                timeStyle: 'short',
+              })}
+            </p>
+          )}
+          {meeting.location && <p>{meeting.location}</p>}
+          {description && <p className="meeting-details__description">{description}</p>}
+        </>
+      ) : (
+        <p className="feature-empty">The next meeting has not been scheduled.</p>
+      )}
+    </section>
+  )
+  const meetingActions = canEdit && hasSavedMeeting && (
+    <div className="meeting-actions">
+      <button
+        className="feature-button feature-button--danger meeting-delete-button"
+        type="button"
+        onClick={requestDelete}
+        disabled={saving || deleting}
+      >
+        {deleting ? 'Deleting…' : 'Delete next meeting'}
+      </button>
+    </div>
+  )
 
   return (
     <FeaturePage
@@ -146,87 +227,121 @@ export default function MeetingsPage({ user }) {
       {error && <div className="feature-error" role="alert">{error}</div>}
       {success && <div className="feature-success" role="status">{success}</div>}
 
+      {confirmingDelete && meeting && (
+        <div className="technical-admin-confirmation-backdrop">
+          <section
+            className="technical-admin-confirmation"
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="meeting-delete-confirmation-title"
+            aria-describedby="meeting-delete-confirmation-description"
+          >
+            <h2 id="meeting-delete-confirmation-title">Delete meeting?</h2>
+            <p id="meeting-delete-confirmation-description">
+              Delete the scheduled meeting <strong>{meeting.title}</strong>?
+            </p>
+            <div className="technical-admin-confirmation-actions">
+              <button
+                type="button"
+                className="button button-secondary"
+                onClick={() => setConfirmingDelete(false)}
+                disabled={deleting}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="feature-button feature-button--danger meeting-delete-button"
+                onClick={handleDelete}
+                disabled={deleting}
+              >
+                {deleting ? 'Deleting…' : 'Delete meeting'}
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+
       {loading ? (
         <div className="feature-card" aria-live="polite">Loading meeting details…</div>
       ) : canEdit ? (
-        <form className="feature-card feature-form" onSubmit={handleSave}>
-          <label>
-            Meeting title
-            <input
-              className="feature-input"
-              type="text"
-              name="title"
-              value={title}
-              onChange={event => setTitle(event.target.value)}
-              maxLength={200}
-              placeholder="e.g. Monthly group meeting"
-              required
-            />
-          </label>
+        <>
+          <form className="feature-card feature-form" onSubmit={handleSave}>
+            <label>
+              Meeting title
+              <input
+                className="feature-input"
+                type="text"
+                name="title"
+                value={title}
+                onChange={event => setTitle(event.target.value)}
+                maxLength={200}
+                placeholder="e.g. Monthly group meeting"
+                required
+              />
+            </label>
 
-          <label>
-            Meeting date and time
-            <input
-              className="feature-input"
-              type="datetime-local"
-              name="startsAt"
-              value={meetingAt}
-              onChange={event => setMeetingAt(event.target.value)}
-              required
-            />
-          </label>
+            <label>
+              Meeting date and time
+              <span className="feature-date-time-control">
+                <input
+                  ref={meetingAtInputRef}
+                  className="feature-input"
+                  type="datetime-local"
+                  name="startsAt"
+                  value={meetingAt}
+                  onChange={event => setMeetingAt(event.target.value)}
+                  required
+                />
+                <button
+                  className="feature-button"
+                  type="button"
+                  aria-label="Open meeting date and time picker"
+                  onClick={openMeetingDatePicker}
+                >
+                  <CalendarDays size={17} aria-hidden="true" />
+                  Choose date &amp; time
+                </button>
+                {hasSavedMeeting && (
+                  <button
+                    className="feature-button meeting-date-save-button"
+                    type="button"
+                    aria-label="Save meeting date and time"
+                    onClick={handleSaveMeetingDateTime}
+                    disabled={saving || deleting || !meetingAt}
+                  >
+                    <Save size={16} aria-hidden="true" />
+                    {saving ? 'Saving…' : 'Save'}
+                  </button>
+                )}
+              </span>
+            </label>
 
-          <label>
-            Notes or agenda
-            <textarea
-              className="feature-textarea"
-              name="description"
-              value={notes}
-              onChange={event => setNotes(event.target.value)}
-            />
-          </label>
+            <label>
+              Notes or agenda
+              <textarea
+                className="feature-textarea"
+                name="description"
+                value={notes}
+                onChange={event => setNotes(event.target.value)}
+              />
+            </label>
 
-          <div>
-            <button
-              className="feature-button feature-button--primary"
-              type="submit"
-              disabled={saving || deleting}
-            >
-              {saving ? 'Saving…' : 'Save next meeting'}
-            </button>
-            {meeting && (
+            <div>
               <button
-                className="feature-button"
-                type="button"
-                onClick={handleDelete}
+                className="feature-button feature-button--primary"
+                type="submit"
                 disabled={saving || deleting}
-                style={{ marginLeft: '.5rem' }}
               >
-                {deleting ? 'Deleting…' : 'Delete next meeting'}
+                {saving ? 'Saving…' : 'Save next meeting'}
               </button>
-            )}
-          </div>
-        </form>
+            </div>
+          </form>
+          {meetingDetails}
+          {meetingActions}
+        </>
       ) : (
-        <section className="feature-card meeting-details">
-          {meeting ? (
-            <>
-              <h2>{meeting.title || 'Group meeting'}</h2>
-              {displayDate && (
-                <p className="meeting-details__date">
-                  {new Date(displayDate).toLocaleString('en-KE', {
-                    dateStyle: 'full',
-                    timeStyle: 'short',
-                  })}
-                </p>
-              )}
-              {meeting.location && <p>{meeting.location}</p>}
-              {description && <p className="meeting-details__description">{description}</p>}
-            </>
-          ) : (
-            <p className="feature-empty">The next meeting has not been scheduled.</p>
-          )}
-        </section>
+        meetingDetails
       )}
     </FeaturePage>
   )

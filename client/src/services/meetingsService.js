@@ -1,5 +1,10 @@
 import { apiRequest } from './apiClient.js'
 
+export async function getMeetings() {
+  const result = await apiRequest('/meetings')
+  return Array.isArray(result.meetings) ? result.meetings : []
+}
+
 export function getNextMeeting() {
   return apiRequest('/meetings/next')
 }

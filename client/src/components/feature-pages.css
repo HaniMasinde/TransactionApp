@@ -44,6 +44,10 @@
   gap: 1rem;
 }
 
+.meeting-minutes-grid {
+  grid-template-columns: minmax(220px, 0.8fr) minmax(0, 1.6fr);
+}
+
 .feature-muted {
   color: var(--muted, #667085);
 }
@@ -118,7 +122,37 @@
 .feature-form label {
   display: grid;
   gap: 0.4rem;
+}
+
+.meeting-minutes-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.feature-date-time-control {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.feature-date-time-control .feature-input {
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+
+.feature-date-time-control .feature-button {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  white-space: nowrap;
   font-weight: 600;
+}
+
+.feature-date-time-control .meeting-date-save-button {
+  padding: 0.6rem 0.75rem;
 }
 
 .feature-button {
@@ -200,6 +234,18 @@
   white-space: pre-wrap;
 }
 
+.meeting-actions {
+  display: flex;
+  justify-content: flex-end;
+  max-width: 760px;
+  margin-top: -0.5rem;
+}
+
+.meeting-delete-button {
+  padding: 0.4rem 0.65rem;
+  font-size: 0.8rem;
+}
+
 @media (max-width: 650px) {
   .feature-page__header {
     flex-direction: column;
@@ -207,6 +253,15 @@
 
   .feature-page__header h1 {
     font-size: 1.4rem;
+  }
+
+  .feature-date-time-control {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .meeting-minutes-grid {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .notification-actions {

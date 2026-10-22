@@ -5,6 +5,7 @@ import {
   getMeetingMinutes,
   updateMeetingMinutes,
 } from '../services/meetingMinutesService.js'
+import { getMeetings } from '../services/meetingsService.js'
 import useAutoDismiss from '../hooks/useAutoDismiss.js'
 
 const itemId = (item) =>
@@ -17,6 +18,7 @@ const itemTitle = (item) =>
   'Meeting minutes'
 
 const itemDate = (item) =>
+  item?.meeting_starts_at ??
   item?.meetingDate ??
   item?.meeting_date ??
   item?.date ??
@@ -30,16 +32,19 @@ const itemContent = (item) =>
   item?.notes ??
   ''
 
+const meetingHasTakenPlace = item => {
+  const startsAt = itemDate(item)
+  return startsAt ? new Date(startsAt).getTime() <= Date.now() : false
+}
+
 export default function MeetingMinutesPage({ user }) {
   const canEdit =
     String(user?.role ?? '').toLowerCase() === 'secretary'
 
   const [items, setItems] = useState([])
+  const [meetings, setMeetings] = useState([])
   const [selectedId, setSelectedId] = useState(null)
-  const [title, setTitle] = useState('')
-  const [meetingDate, setMeetingDate] = useState(
-    new Date().toISOString().slice(0, 10),
-  )
+  const [meetingId, setMeetingId] = useState('')
   const [content, setContent] = useState('')
   const [editing, setEditing] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -58,13 +63,23 @@ export default function MeetingMinutesPage({ user }) {
   useEffect(() => {
     let active = true
 
-    getMeetingMinutes()
-      .then((result) => {
-        if (active) setItems(result)
-      })
-      .catch((err) => {
-        if (active) {
-          setError(err.message || 'Could not load meeting minutes.')
+    Promise.allSettled([
+      getMeetingMinutes(),
+      canEdit ? getMeetings() : Promise.resolve([]),
+    ])
+      .then(([minutesResult, meetingsResult]) => {
+        if (!active) return
+
+        if (minutesResult.status === 'fulfilled') {
+          setItems(minutesResult.value)
+        } else {
+          setError(minutesResult.reason?.message || 'Could not load meeting minutes.')
+        }
+
+        if (meetingsResult.status === 'fulfilled') {
+          setMeetings(meetingsResult.value)
+        } else {
+          setError(meetingsResult.reason?.message || 'Could not load meetings.')
         }
       })
       .finally(() => {
@@ -74,12 +89,11 @@ export default function MeetingMinutesPage({ user }) {
     return () => {
       active = false
     }
-  }, [])
+  }, [canEdit])
 
   function startNew() {
     setSelectedId(null)
-    setTitle('')
-    setMeetingDate(new Date().toISOString().slice(0, 10))
+    setMeetingId('')
     setContent('')
     setEditing(true)
     setError('')
@@ -88,10 +102,7 @@ export default function MeetingMinutesPage({ user }) {
 
   function selectItem(item) {
     setSelectedId(itemId(item))
-    setTitle(itemTitle(item))
-
-    const date = itemDate(item)
-    setMeetingDate(date ? String(date).slice(0, 10) : '')
+    setMeetingId(String(item.meeting_id ?? item.meetingId ?? ''))
     setContent(itemContent(item))
     setEditing(false)
     setError('')
@@ -105,16 +116,10 @@ export default function MeetingMinutesPage({ user }) {
     setSaving(true)
 
     try {
-      const details = {
-        title,
-        meetingDate,
-        content,
-      }
-
       if (selectedId) {
-        await updateMeetingMinutes(selectedId, details)
+        await updateMeetingMinutes(selectedId, { content })
       } else {
-        await createMeetingMinutes(details)
+        await createMeetingMinutes({ meetingId, content })
       }
 
       await reload()
@@ -138,6 +143,7 @@ export default function MeetingMinutesPage({ user }) {
   const selected = items.find(
     (item) => String(itemId(item)) === String(selectedId),
   )
+  const availableMeetings = meetings.filter(meeting => !meeting.has_minutes)
 
   return (
     <FeaturePage
@@ -176,11 +182,7 @@ export default function MeetingMinutesPage({ user }) {
         </div>
       ) : (
         <div
-          className="feature-grid"
-          style={{
-            gridTemplateColumns:
-              'minmax(220px, .8fr) minmax(300px, 1.6fr)',
-          }}
+          className="feature-grid meeting-minutes-grid"
         >
           <div className="feature-card">
             <h2 style={{ marginTop: 0 }}>Records</h2>
@@ -221,28 +223,39 @@ export default function MeetingMinutesPage({ user }) {
                 className="feature-form"
                 onSubmit={handleSave}
               >
-                <label>
-                  Meeting title
-                  <input
-                    className="feature-input"
-                    value={title}
-                    onChange={(event) => setTitle(event.target.value)}
-                    required
-                  />
-                </label>
-
-                <label>
-                  Meeting date
-                  <input
-                    className="feature-input"
-                    type="date"
-                    value={meetingDate}
-                    onChange={(event) =>
-                      setMeetingDate(event.target.value)
-                    }
-                    required
-                  />
-                </label>
+                {selectedId ? (
+                  <p className="feature-muted">
+                    Meeting: {itemTitle(selected)}
+                    {itemDate(selected)
+                      ? ` — ${new Date(itemDate(selected)).toLocaleDateString('en-KE')}`
+                      : ''}
+                  </p>
+                ) : (
+                  <label>
+                    Meeting
+                    <select
+                      className="feature-select"
+                      value={meetingId}
+                      onChange={event => setMeetingId(event.target.value)}
+                      required
+                    >
+                      <option value="">Select a meeting</option>
+                      {availableMeetings.map(meeting => (
+                        <option key={meeting.id} value={meeting.id}>
+                          {meeting.title} — {new Date(meeting.starts_at).toLocaleString('en-KE', {
+                            dateStyle: 'medium',
+                            timeStyle: 'short',
+                          })}
+                        </option>
+                      ))}
+                    </select>
+                    {availableMeetings.length === 0 && (
+                      <span className="feature-muted">
+                        No meetings without recorded minutes are available.
+                      </span>
+                    )}
+                  </label>
+                )}
 
                 <label>
                   Minutes
@@ -256,7 +269,7 @@ export default function MeetingMinutesPage({ user }) {
                   />
                 </label>
 
-                <div style={{ display: 'flex', gap: '.5rem' }}>
+                <div className="meeting-minutes-form-actions">
                   <button
                     className="feature-button feature-button--primary"
                     disabled={saving}
@@ -294,7 +307,7 @@ export default function MeetingMinutesPage({ user }) {
                   {itemContent(selected) || 'No content recorded.'}
                 </div>
 
-                {canEdit && (
+                {canEdit && meetingHasTakenPlace(selected) && (
                   <div style={{ marginTop: '1rem' }}>
                     <button
                       className="feature-button"
@@ -303,6 +316,11 @@ export default function MeetingMinutesPage({ user }) {
                       Edit minutes
                     </button>
                   </div>
+                )}
+                {canEdit && !meetingHasTakenPlace(selected) && (
+                  <p className="feature-muted">
+                    Minutes can only be edited after the meeting has taken place.
+                  </p>
                 )}
               </>
             ) : (

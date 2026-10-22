@@ -9,6 +9,36 @@ router.use(requireAuth);
 
 const canManageMeetings = requireRole(["chairperson"]);
 
+// GET /api/meetings
+// List meetings for selecting a meeting when recording minutes.
+router.get("/", async (req, res, next) => {
+  try {
+    const result = await query(
+      `SELECT
+         m.id,
+         m.title,
+         m.starts_at,
+         m.location,
+         EXISTS (
+           SELECT 1
+           FROM meeting_minutes mm
+           WHERE mm.meeting_id = m.id
+         ) AS has_minutes
+       FROM meetings m
+       WHERE m.starts_at < NOW()
+       ORDER BY m.starts_at DESC`
+    );
+
+    return res.status(200).json({
+      success: true,
+      count: result.rowCount,
+      meetings: result.rows,
+    });
+  } catch (error) {
+    return next(error);
+  }
+});
+
 function validateMeetingInput(body) {
   const { title, startsAt, location = null, description = null } = body || {};
 
