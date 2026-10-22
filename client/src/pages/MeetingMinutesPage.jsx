@@ -5,6 +5,7 @@ import {
   getMeetingMinutes,
   updateMeetingMinutes,
 } from '../services/meetingMinutesService.js'
+import useAutoDismiss from '../hooks/useAutoDismiss.js'
 
 const itemId = (item) =>
   item?.id ?? item?.minuteId ?? item?.minute_id
@@ -45,6 +46,9 @@ export default function MeetingMinutesPage({ user }) {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+
+  useAutoDismiss(error, setError)
+  useAutoDismiss(success, setSuccess)
 
   async function reload() {
     const result = await getMeetingMinutes()

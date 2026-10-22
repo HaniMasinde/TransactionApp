@@ -4,6 +4,7 @@ import {
   getGroupRules,
   saveGroupRules,
 } from '../services/groupRulesService.js'
+import useAutoDismiss from '../hooks/useAutoDismiss.js'
 
 function extractRules(payload) {
   if (typeof payload === 'string') return payload
@@ -40,6 +41,9 @@ export default function GroupRulesPage({ user }) {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+
+  useAutoDismiss(error, setError)
+  useAutoDismiss(success, setSuccess)
 
   useEffect(() => {
     let active = true

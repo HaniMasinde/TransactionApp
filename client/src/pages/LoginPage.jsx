@@ -2,12 +2,15 @@
 import { useState } from 'react'
 import AuthLayout from '../components/AuthLayout.jsx'
 import PasswordInput from '../components/PasswordInput.jsx'
+import useAutoDismiss from '../hooks/useAutoDismiss.js'
 
 export default function LoginPage({ onLogin, onRegister, onHome }) {
   const [phone, setPhone] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+
+  useAutoDismiss(error, setError)
 
   async function handleSubmit(event) {
     event.preventDefault()

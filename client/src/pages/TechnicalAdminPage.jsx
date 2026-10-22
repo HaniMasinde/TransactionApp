@@ -4,6 +4,7 @@ import {
   getTechnicalAdminUsers,
   updateUserRole,
 } from '../services/technicalAdminService.js'
+import useAutoDismiss from '../hooks/useAutoDismiss.js'
 
 const assignableRoles = [
   { value: 'member', label: 'Member' },
@@ -12,7 +13,7 @@ const assignableRoles = [
   { value: 'secretary', label: 'Secretary' },
 ]
 const staffingRequirements = [
-  { role: 'chairperson', label: 'Chairpersons', minimum: 2 },
+  { role: 'chairperson', label: 'Chairpersons', minimum: 1 },
   { role: 'treasurer', label: 'Treasurers', minimum: 1 },
 ]
 
@@ -23,6 +24,9 @@ export default function TechnicalAdminPage({ user: currentUser }) {
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [selectedRoles, setSelectedRoles] = useState({})
+
+  useAutoDismiss(error, setError)
+  useAutoDismiss(notice, setNotice)
 
   const staffing = staffingRequirements.map(requirement => {
     const count = users.filter(

@@ -5,6 +5,7 @@ import {
   getNextMeeting,
   saveNextMeeting,
 } from '../services/meetingsService.js'
+import useAutoDismiss from '../hooks/useAutoDismiss.js'
 
 const getMeeting = payload =>
   payload?.meeting ??
@@ -45,6 +46,9 @@ export default function MeetingsPage({ user }) {
   const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+
+  useAutoDismiss(error, setError)
+  useAutoDismiss(success, setSuccess)
 
   useEffect(() => {
     let active = true

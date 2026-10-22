@@ -17,6 +17,7 @@ import ProfilePage from './pages/ProfilePage.jsx'
 import RegisterPage from './pages/RegisterPage.jsx'
 import LandingPage from './pages/LandingPage.jsx'
 import TechnicalAdminPage from './pages/TechnicalAdminPage.jsx'
+import useAutoDismiss from './hooks/useAutoDismiss.js'
 
 const pageComponents = {
   dashboard: DashboardPage,
@@ -52,6 +53,8 @@ export default function App() {
   const [checkingSession, setCheckingSession] = useState(true)
   const [appError, setAppError] = useState('')
   const [authPage, setAuthPage] = useState('landing')
+
+  useAutoDismiss(appError, setAppError)
 
   useEffect(() => {
     let active = true

@@ -925,6 +925,27 @@ footer span {
   background: #fff2f2;
 }
 
+.auth-error,
+.auth-success,
+.app-error,
+.account-success,
+.technical-admin-error,
+.technical-admin-notice {
+  animation: feedback-fade-in 220ms ease-out both;
+}
+
+@keyframes feedback-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .auth-footnote {
   margin: 22px 0 0;
   font-size: 13px;
@@ -3331,6 +3352,17 @@ footer {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .auth-error,
+  .auth-success,
+  .app-error,
+  .account-success,
+  .technical-admin-error,
+  .technical-admin-notice,
+  .feature-error,
+  .feature-success {
+    animation: none;
+  }
+
   .landing-page *,
   .auth-screen *,
   .auth-screen::before,

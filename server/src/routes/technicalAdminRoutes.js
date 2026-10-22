@@ -18,7 +18,7 @@ const ASSIGNABLE_ROLES = [
   "secretary",
 ];
 const MINIMUM_OFFICE_HOLDERS = {
-  chairperson: 2,
+  chairperson: 1,
   treasurer: 1,
 };
 

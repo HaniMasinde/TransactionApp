@@ -3,12 +3,15 @@ import PageHeader from '../components/PageHeader.jsx'
 import Avatar from '../components/ui/Avatar.jsx'
 import StatusBadge from '../components/ui/StatusBadge.jsx'
 import { getMembers } from '../services/memberService.js'
+import useAutoDismiss from '../hooks/useAutoDismiss.js'
 
 export default function MembersPage() {
   const [members, setMembers] = useState([])
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+
+  useAutoDismiss(error, setError)
 
   useEffect(() => {
     let active = true

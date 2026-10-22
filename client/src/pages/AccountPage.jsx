@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import PageHeader from '../components/PageHeader.jsx'
 import { getMyAccount, updateMyAccount } from '../services/memberService.js'
+import useAutoDismiss from '../hooks/useAutoDismiss.js'
 
 export default function AccountPage({ onAccountUpdated }) {
   const [account, setAccount] = useState(null)
@@ -11,6 +12,9 @@ export default function AccountPage({ onAccountUpdated }) {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+
+  useAutoDismiss(error, setError)
+  useAutoDismiss(success, setSuccess)
 
   useEffect(() => {
     let active = true

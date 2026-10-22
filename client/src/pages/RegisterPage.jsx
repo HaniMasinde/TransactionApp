@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { registerAccount } from '../services/authService.js'
 import AuthLayout from '../components/AuthLayout.jsx'
 import PasswordInput from '../components/PasswordInput.jsx'
+import useAutoDismiss from '../hooks/useAutoDismiss.js'
 
 export default function RegisterPage({ onLogin, onHome }) {
   const [fullName, setFullName] = useState('')
@@ -13,6 +14,10 @@ export default function RegisterPage({ onLogin, onHome }) {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [submitting, setSubmitting] = useState(false)
+
+  useAutoDismiss(error, setError)
+  useAutoDismiss(success, setSuccess)
+
   const passwordHasLetter = /[A-Za-z]/.test(password)
   const passwordHasDigit = /\d/.test(password)
   const passwordHasSpecial = /[^A-Za-z0-9\s]/.test(password)

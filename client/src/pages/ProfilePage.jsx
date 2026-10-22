@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import FeaturePage from '../components/FeaturePage.jsx'
 import { getMyAccount } from '../services/memberService.js'
+import useAutoDismiss from '../hooks/useAutoDismiss.js'
 
 function show(value) {
   if (value === undefined || value === null || value === '') {
@@ -14,6 +15,8 @@ export default function ProfilePage({ onNavigate }) {
   const [account, setAccount] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+
+  useAutoDismiss(error, setError)
 
   useEffect(() => {
     let active = true

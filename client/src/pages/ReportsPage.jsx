@@ -5,6 +5,7 @@ import {
   getWeeklyMemberReport,
 } from '../services/transactionService.js'
 import { formatCurrency } from '../utils/formatCurrency.js'
+import useAutoDismiss from '../hooks/useAutoDismiss.js'
 
 function nairobiToday() {
   const parts = new Intl.DateTimeFormat('en-CA', {
@@ -55,6 +56,10 @@ export default function ReportsPage({ user }) {
   const [groupError, setGroupError] = useState('')
   const [membersError, setMembersError] = useState('')
   const [selectionError, setSelectionError] = useState('')
+
+  useAutoDismiss(groupError, setGroupError)
+  useAutoDismiss(membersError, setMembersError)
+  useAutoDismiss(selectionError, setSelectionError)
 
   useEffect(() => {
     let active = true

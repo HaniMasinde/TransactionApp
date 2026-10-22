@@ -3,6 +3,7 @@ import PageHeader from '../components/PageHeader.jsx'
 import TransactionTable from '../components/TransactionTable.jsx'
 import { createTransaction, getTransactions, reverseTransaction } from '../services/transactionService.js'
 import { getMembers } from '../services/memberService.js'
+import useAutoDismiss from '../hooks/useAutoDismiss.js'
 
 export default function TransactionsPage({ user }) {
   const [search, setSearch] = useState('')
@@ -19,6 +20,9 @@ export default function TransactionsPage({ user }) {
   const [reversing, setReversing] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+
+  useAutoDismiss(error, setError)
+  useAutoDismiss(success, setSuccess)
 
   const role = String(user?.role || '').toLowerCase().replace(/\s+/g, '')
   const canRecordPayment = role === 'treasurer'

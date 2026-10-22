@@ -8,6 +8,7 @@ import {
   markAllNotificationsRead,
   markNotificationRead,
 } from '../services/notificationService.js'
+import useAutoDismiss from '../hooks/useAutoDismiss.js'
 
 const idOf = (item) =>
   item?.id ?? item?.notificationId ?? item?.notification_id
@@ -33,6 +34,9 @@ export default function NotificationsPage() {
   const [busyId, setBusyId] = useState(null)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+
+  useAutoDismiss(error, setError)
+  useAutoDismiss(success, setSuccess)
 
   async function reload() {
     setItems(await getNotifications())

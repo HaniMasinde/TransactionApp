@@ -54,6 +54,7 @@
   background: #fff1f0;
   color: #a61b1b;
   margin-bottom: 1rem;
+  animation: feedback-fade-in 220ms ease-out both;
 }
 
 .feature-success {
@@ -62,6 +63,7 @@
   background: #ecfdf3;
   color: #067647;
   margin-bottom: 1rem;
+  animation: feedback-fade-in 220ms ease-out both;
 }
 
 .feature-table-wrap {

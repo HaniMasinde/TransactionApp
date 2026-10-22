@@ -4,6 +4,7 @@ import TransactionTable from '../components/TransactionTable.jsx'
 import { getTransactions } from '../services/transactionService.js'
 import { getDashboardOverview } from '../services/dashboardService.js'
 import { formatCurrency } from '../utils/formatCurrency.js'
+import useAutoDismiss from '../hooks/useAutoDismiss.js'
 
 function displayDate() {
   return new Intl.DateTimeFormat('en-KE', {
@@ -96,6 +97,8 @@ export default function DashboardPage({ user, onNavigate }) {
   const [transactions, setTransactions] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+
+  useAutoDismiss(error, setError)
 
   useEffect(() => {
     let active = true

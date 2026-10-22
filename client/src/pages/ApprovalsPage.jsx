@@ -6,12 +6,15 @@ import {
   getPendingMembers,
   rejectMember,
 } from '../services/adminService.js'
+import useAutoDismiss from '../hooks/useAutoDismiss.js'
 
 export default function ApprovalsPage() {
   const [members, setMembers] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [busyId, setBusyId] = useState('')
+
+  useAutoDismiss(error, setError)
 
   useEffect(() => {
     let active = true
