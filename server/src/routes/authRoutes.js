@@ -6,7 +6,6 @@ const { query } = require("../config/database");
 const validateRequest = require("../middleware/validateRequest");
 const authController = require("../controller/authController");
 const { requireAuth } = require("../middleware/auth");
-const sessionCookie = require("../config/sessionCookie");
 const {
   validateRegistration,
   validateLogin
@@ -96,7 +95,12 @@ router.get("/me",requireAuth, (req, res) => {
 // POST /api/auth/logout
 router.post("/logout", (req, res, next) => {
   if (!req.session) {
-    res.clearCookie(SESSION_COOKIE, sessionCookie);
+    res.clearCookie(SESSION_COOKIE, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+    });
 
     return res.status(200).json({
       success: true,
@@ -105,7 +109,12 @@ router.post("/logout", (req, res, next) => {
   }
 
   req.session.destroy((error) => {
-    res.clearCookie(SESSION_COOKIE, sessionCookie);
+    res.clearCookie(SESSION_COOKIE, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+    });
 
     if (error) {
       return next(error);

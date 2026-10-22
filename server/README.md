@@ -9,24 +9,13 @@ Requires Node.js 20+ and PostgreSQL 14+.
 ```sh
 cp .env.example .env  # only if .env does not already exist
 # Otherwise add/update these settings in the existing .env.
-# Set DATABASE_URL, SESSION_SECRET, and a private JWT_SECRET of at least 32 characters.
+# Set DATABASE_URL and a private JWT_SECRET of at least 32 characters.
 npm install
 npm run db:migrate
 npm run dev
 ```
 
 The API listens on `http://localhost:4000`. Client Vite proxies `/api` to this server. Database schema setup is idempotent and also runs when the server starts.
-
-## Production deployment
-
-When deploying the client and API on separate hosts, configure these variables:
-
-- Client build: `VITE_API_BASE_URL=https://<api-host>/api` (include `/api`; this value is embedded when the client is built).
-- API runtime: `NODE_ENV=production`, `CLIENT_ORIGIN=https://<client-host>`, `SESSION_SECRET=<a-long-random-secret>`, and `DATABASE_URL`.
-- `CLIENT_ORIGIN` may contain a comma-separated list of exact client origins. The API fails to start in production if no client origin is configured.
-- Use `SESSION_COOKIE_SAME_SITE=lax` for same-site deployments. Use `none` only when the client and API are on different sites; this requires HTTPS and `NODE_ENV=production`.
-
-If production routes `/api` from the client host to the API, the client can keep the default `/api` base URL. Confirm the deployment by opening `https://<api-host>/api/health` and checking that it returns HTTP 200, then verify the browser request uses the intended API host and that login persists its session cookie.
 
 ## Provision the two administrator accounts
 

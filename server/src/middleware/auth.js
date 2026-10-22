@@ -1,5 +1,4 @@
 const { query } = require("../config/database");
-const sessionCookie = require("../config/sessionCookie");
 
 async function requireAuth(req, res, next) {
   try {
@@ -27,7 +26,7 @@ async function requireAuth(req, res, next) {
         req.session.destroy(() => {});
       }
 
-      res.clearCookie("transaction.sid", sessionCookie);
+      res.clearCookie("transaction.sid");
 
       return res.status(401).json({
         success: false,
