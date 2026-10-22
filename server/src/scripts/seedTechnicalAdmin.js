@@ -1,7 +1,16 @@
 
 "use strict";
 
-require("dotenv").config();
+const path = require("path");
+
+const useProduction = process.argv.includes("--production");
+
+require("dotenv").config({
+  path: path.resolve(__dirname, useProduction
+    ? "../../.env.production"
+    : "../../.env"),
+  override: true,
+});
 
 const bcrypt = require("bcryptjs");
 const readline = require("readline");
