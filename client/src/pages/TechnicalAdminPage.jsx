@@ -16,6 +16,7 @@ const staffingRequirements = [
   { role: 'chairperson', label: 'Chairpersons', minimum: 1 },
   { role: 'treasurer', label: 'Treasurers', minimum: 1 },
 ]
+const roleOrder = ['technical_admin', 'chairperson', 'secretary', 'treasurer', 'member']
 
 export default function TechnicalAdminPage({ user: currentUser }) {
   const [users, setUsers] = useState([])
@@ -36,6 +37,19 @@ export default function TechnicalAdminPage({ user: currentUser }) {
 
     return { ...requirement, count, shortfall: Math.max(requirement.minimum - count, 0) }
   })
+
+  const sortedUsers = users
+    .map((user, index) => ({ user, index }))
+    .sort((a, b) => {
+      const roleDifference =
+        roleOrder.indexOf(a.user.role) - roleOrder.indexOf(b.user.role)
+
+      if (roleDifference === 0) return a.index - b.index
+      if (roleOrder.indexOf(a.user.role) === -1) return 1
+      if (roleOrder.indexOf(b.user.role) === -1) return -1
+      return roleDifference
+    })
+    .map(({ user }) => user)
 
   const loadUsers = useCallback(async () => {
     setLoading(true)
@@ -231,7 +245,7 @@ export default function TechnicalAdminPage({ user: currentUser }) {
             </thead>
 
             <tbody>
-              {users.map(user => (
+              {sortedUsers.map(user => (
                 <tr key={user.id}>
                   <td>
                     <strong>{user.fullName}</strong>

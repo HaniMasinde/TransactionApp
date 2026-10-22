@@ -29,7 +29,7 @@ export default function AppLayout({
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
 
   return (
-    <div className="app-shell" data-theme={theme}>
+    <div className="app-shell" data-theme={theme} data-page={page}>
       {mobileNavOpen && (
         <button
           className="sidebar-backdrop"
@@ -41,6 +41,7 @@ export default function AppLayout({
       <Sidebar
         page={page}
         user={user}
+        onLogout={onLogout}
         onNavigate={onNavigate}
         onClose={() => setMobileNavOpen(false)}
         mobileOpen={mobileNavOpen}
@@ -51,7 +52,6 @@ export default function AppLayout({
           user={user}
           theme={theme}
           onThemeToggle={onThemeToggle}
-          onLogout={onLogout}
           onNavigate={onNavigate}
           page={page}
           onMenuClick={() => setMobileNavOpen(open => !open)}

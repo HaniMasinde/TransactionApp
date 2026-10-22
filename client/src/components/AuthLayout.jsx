@@ -6,6 +6,7 @@ export default function AuthLayout({
   title,
   description,
   onHome,
+  variant = 'default',
 }) {
   function goHome(event) {
     event.preventDefault()
@@ -13,7 +14,7 @@ export default function AuthLayout({
   }
 
   return (
-    <main className="auth-screen">
+    <main className={`auth-screen auth-screen--${variant}`}>
       <div className="auth-shell">
         <aside className="auth-visual">
           <a className="auth-story-brand" href="#home" onClick={goHome}>

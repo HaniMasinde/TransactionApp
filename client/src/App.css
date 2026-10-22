@@ -1099,6 +1099,32 @@ footer span {
   padding-top: 13px;
 }
 
+.sidebar-logout-button {
+  display: flex;
+  width: 100%;
+  min-height: 40px;
+  align-items: center;
+  gap: 11px;
+  margin-top: 12px;
+  padding: 0 11px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: #66736b;
+  background: transparent;
+  text-align: left;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color .16s ease, background .16s ease, border-color .16s ease;
+}
+
+.sidebar-logout-button:hover {
+  border-color: #f0d4d1;
+  color: #a8322a;
+  background: #fff4f2;
+}
+
 .sidebar-user {
   gap: 10px;
   padding: 13px 4px 2px;
@@ -3786,9 +3812,22 @@ footer {
 }
 
 .app-shell[data-theme='dark'] .sidebar-nav-item:hover,
+.app-shell[data-theme='dark'] .sidebar-logout-button:hover,
 .app-shell[data-theme='dark'] .profile-button:hover {
   color: #c4f1d0;
   background: #1d3023;
+}
+
+.app-shell[data-theme='dark'] .sidebar-logout-button {
+  border-color: #3a4a3e;
+  color: #d0d9d2;
+  background: #1b2820;
+}
+
+.app-shell[data-theme='dark'] .sidebar-logout-button:hover {
+  border-color: #75413c;
+  color: #ffd1cc;
+  background: #462a27;
 }
 
 .app-shell[data-theme='dark'] .sidebar-nav-item.active {
@@ -4043,4 +4082,35 @@ footer {
     gap: 9px;
   }
 
+}
+
+.auth-screen--register {
+  background-image:
+    linear-gradient(rgb(8 18 15 / 48%), rgb(8 18 15 / 58%)),
+    url('./assets/espacio.jpeg');
+  background-attachment: fixed;
+  background-position: center center;
+  background-size: cover;
+}
+
+.auth-screen--register .auth-visual {
+  background:
+    linear-gradient(rgb(8 18 15 / 54%), rgb(8 18 15 / 72%)),
+    url('./assets/espacio.jpeg') center center / cover no-repeat;
+  background-attachment: fixed;
+}
+
+.app-shell[data-page='dashboard'] .main-area {
+  background-image:
+    linear-gradient(rgb(246 248 246 / 48%), rgb(246 248 246 / 62%)),
+    url('./assets/Neon.jpeg');
+  background-position: center center;
+  background-size: cover;
+  background-attachment: fixed;
+}
+
+.app-shell[data-theme='dark'][data-page='dashboard'] .main-area {
+  background-image:
+    linear-gradient(rgb(14 22 17 / 57%), rgb(14 22 17 / 74%)),
+    url('./assets/Neon.jpeg');
 }

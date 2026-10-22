@@ -11,7 +11,6 @@ export default function Topbar({
   user,
   theme,
   onThemeToggle,
-  onLogout,
   onMenuClick,
   onNavigate,
   page,
@@ -98,13 +97,6 @@ export default function Topbar({
           <span className="avatar avatar-green">{initials}</span>
           <span>{name}</span>
         </span>
-        <button
-          className="logout-button"
-          type="button"
-          onClick={onLogout}
-        >
-          Sign out
-        </button>
       </div>
     </header>
   )

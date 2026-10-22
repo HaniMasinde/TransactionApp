@@ -67,6 +67,7 @@ export default function RegisterPage({ onLogin, onHome }) {
 
   return (
     <AuthLayout
+      variant="register"
       eyebrow="GET STARTED"
       title="Create your account"
       description="Register to access your group's contributions and activities."

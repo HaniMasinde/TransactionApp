@@ -11,6 +11,7 @@ import {
   ContactRound,
   Wallet,
   ShieldCheck,
+  LogOut,
 } from 'lucide-react'
 import Avatar from '../components/ui/Avatar.jsx'
 
@@ -87,6 +88,7 @@ export default function Sidebar({
   onNavigate,
   user,
   role,
+  onLogout,
   onClose,
   mobileOpen = false,
 }) {
@@ -148,6 +150,14 @@ export default function Sidebar({
             <small>{displayRole}</small>
           </span>
         </div>
+        <button
+          className="sidebar-logout-button"
+          type="button"
+          onClick={onLogout}
+        >
+          <LogOut size={17} strokeWidth={1.8} />
+          <span>Sign out</span>
+        </button>
       </div>
     </aside>
   )
