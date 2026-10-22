@@ -167,4 +167,42 @@ router.patch("/:id/read", async (req, res, next) => {
   }
 });
 
+// DELETE /api/notifications/:id
+// Delete only a notification owned by the authenticated user.
+router.delete("/:id", async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    if (!UUID_REGEX.test(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid notification ID.",
+      });
+    }
+
+    const result = await query(
+      `DELETE FROM notifications
+       WHERE id = $1
+         AND recipient_user_id = $2
+       RETURNING id`,
+      [id, req.session.user.id]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Notification not found.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Notification deleted.",
+      id: result.rows[0].id,
+    });
+  } catch (error) {
+    return next(error);
+  }
+});
+
 module.exports = router;

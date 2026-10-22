@@ -39,3 +39,12 @@ export async function markAllNotificationsRead() {
   window.dispatchEvent(new Event('notifications:changed'))
   return result
 }
+
+export async function deleteNotification(id) {
+  const result = await apiRequest(
+    `/notifications/${encodeURIComponent(id)}`,
+    { method: 'DELETE' },
+  )
+  window.dispatchEvent(new Event('notifications:changed'))
+  return result
+}

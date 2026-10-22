@@ -140,6 +140,23 @@
   color: #b42318;
 }
 
+.notification-actions {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.notification-delete-button {
+  color: #a8322a;
+}
+
+.notification-delete-button:hover:not(:disabled) {
+  border-color: #e6b8b5;
+  background: #fff4f2;
+}
+
 .feature-button:disabled {
   opacity: 0.55;
   cursor: not-allowed;
@@ -188,5 +205,10 @@
 
   .feature-page__header h1 {
     font-size: 1.4rem;
+  }
+
+  .notification-actions {
+    width: 100%;
+    justify-content: flex-start;
   }
 }

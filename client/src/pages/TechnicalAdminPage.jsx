@@ -133,15 +133,19 @@ export default function TechnicalAdminPage({ user: currentUser }) {
         <strong>{users.length}</strong>
       </div>
 
-      <section className="technical-admin-staffing" aria-label="Minimum officer staffing">
-        <h2>Officer minimums</h2>
+      <section className="technical-admin-staffing" aria-label="Officer staffing targets">
+        <h2>Staffing targets</h2>
         <ul>
           {staffing.map(item => (
             <li key={item.role}>
               <span>{item.label}</span>
               <strong>{item.count} / {item.minimum}</strong>
               {item.shortfall > 0 && (
-                <small>Assign {item.shortfall} more</small>
+                <small>
+                  {item.role === 'secretary'
+                    ? `${item.shortfall} below target`
+                    : `Assign ${item.shortfall} more`}
+                </small>
               )}
             </li>
           ))}

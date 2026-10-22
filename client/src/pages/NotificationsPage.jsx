@@ -1,7 +1,9 @@
 
 import { useEffect, useState } from 'react'
+import { Trash2 } from 'lucide-react'
 import FeaturePage from '../components/FeaturePage.jsx'
 import {
+  deleteNotification,
   getNotifications,
   markAllNotificationsRead,
   markNotificationRead,
@@ -86,6 +88,23 @@ export default function NotificationsPage() {
     }
   }
 
+  async function deleteOne(item) {
+    const id = idOf(item)
+    setError('')
+    setSuccess('')
+    setBusyId(id)
+
+    try {
+      await deleteNotification(id)
+      setItems(current => current.filter(notification => idOf(notification) !== id))
+      setSuccess('Notification deleted.')
+    } catch (err) {
+      setError(err.message || 'Could not delete notification.')
+    } finally {
+      setBusyId(null)
+    }
+  }
+
   const unreadCount = items.filter((item) => !isRead(item)).length
 
   return (
@@ -160,15 +179,27 @@ export default function NotificationsPage() {
                 )}
               </div>
 
-              {!isRead(item) && (
+              <div className="notification-actions">
+                {!isRead(item) && (
+                  <button
+                    className="feature-button"
+                    disabled={busyId !== null}
+                    onClick={() => markOne(item)}
+                  >
+                    {busyId === idOf(item) ? 'Saving…' : 'Mark read'}
+                  </button>
+                )}
                 <button
-                  className="feature-button"
-                  disabled={busyId === idOf(item)}
-                  onClick={() => markOne(item)}
+                  className="feature-button notification-delete-button"
+                  type="button"
+                  aria-label={`Delete notification: ${titleOf(item)}`}
+                  disabled={busyId !== null}
+                  onClick={() => deleteOne(item)}
                 >
-                  {busyId === idOf(item) ? 'Saving…' : 'Mark read'}
+                  <Trash2 size={15} aria-hidden="true" />
+                  {busyId === idOf(item) ? 'Deleting…' : 'Delete'}
                 </button>
-              )}
+              </div>
             </div>
           </article>
         ))

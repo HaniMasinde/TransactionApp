@@ -3808,6 +3808,18 @@ footer {
   background: #18794e;
 }
 
+.app-shell[data-theme='dark'] .notification-delete-button {
+  border-color: #573330;
+  color: #ffaaa2;
+  background: #35211f;
+}
+
+.app-shell[data-theme='dark'] .notification-delete-button:hover:not(:disabled) {
+  border-color: #75413c;
+  color: #ffd1cc;
+  background: #462a27;
+}
+
 .app-shell[data-theme='dark'] .feature-pill,
 .app-shell[data-theme='dark'] td code {
   color: #c0ccc3;
