@@ -48,8 +48,8 @@ function validateRegistration(body) {
     return "Enter a valid recovery email address";
   }
 
-  if (typeof password !== "string" || password.length < 10 || password.length > 128) {
-    return "Password must be between 10 and 128 characters";
+  if (typeof password !== "string" || password.length < 8 || password.length > 15) {
+    return "Password must be between 8 and 15 characters";
   }
 
   return null;
@@ -68,7 +68,7 @@ function validateLogin(body) {
     return "Enter a valid phone number";
   }
 
-  if (typeof password !== "string" || password.length < 1 || password.length > 128) {
+  if (typeof password !== "string" || password.length < 1 || password.length > 15) {
     return "Password is required and must not exceed 128 characters";
   }
 

@@ -85,7 +85,7 @@ function validateTransactionFields(body, { partial = false } = {}) {
       paidAt.trim() === "" ||
       Number.isNaN(Date.parse(paidAt))
     ) {
-      return "Payment date must be a valid date";
+      return "Payment date invalid";
     }
   }
 
