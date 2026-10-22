@@ -24,6 +24,7 @@ export default function TechnicalAdminPage({ user: currentUser }) {
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [selectedRoles, setSelectedRoles] = useState({})
+  const [pendingRoleChange, setPendingRoleChange] = useState(null)
 
   useAutoDismiss(error, setError)
   useAutoDismiss(notice, setNotice)
@@ -64,18 +65,23 @@ export default function TechnicalAdminPage({ user: currentUser }) {
 
     if (!nextRole || nextRole === user.role) return
 
-    const confirmed = window.confirm(
-      `Change ${user.fullName}'s role from ${user.role} to ${nextRole}?`,
-    )
+    setPendingRoleChange({ user, nextRole })
+  }
 
-    if (!confirmed) {
-      setSelectedRoles(current => ({
-        ...current,
-        [user.id]: user.role,
-      }))
-      return
-    }
+  function cancelRoleChange() {
+    if (!pendingRoleChange) return
 
+    setSelectedRoles(current => ({
+      ...current,
+      [pendingRoleChange.user.id]: pendingRoleChange.user.role,
+    }))
+    setPendingRoleChange(null)
+  }
+
+  async function confirmRoleChange() {
+    if (!pendingRoleChange) return
+
+    const { user, nextRole } = pendingRoleChange
     setSavingId(user.id)
     setError('')
     setNotice('')
@@ -97,12 +103,14 @@ export default function TechnicalAdminPage({ user: currentUser }) {
         [user.id]: updatedUser?.role || nextRole,
       }))
 
+      setPendingRoleChange(null)
       setNotice(`Role updated successfully for ${user.fullName}.`)
     } catch (err) {
       setSelectedRoles(current => ({
         ...current,
         [user.id]: user.role,
       }))
+      setPendingRoleChange(null)
       setError(err.message || 'Unable to update the user role.')
     } finally {
       setSavingId('')
@@ -125,7 +133,7 @@ export default function TechnicalAdminPage({ user: currentUser }) {
           type="button"
           className="button button-secondary"
           onClick={loadUsers}
-          disabled={loading || Boolean(savingId)}
+          disabled={loading || Boolean(savingId) || Boolean(pendingRoleChange)}
         >
           Refresh users
         </button>
@@ -163,6 +171,43 @@ export default function TechnicalAdminPage({ user: currentUser }) {
         <p className="technical-admin-notice" role="status">
           {notice}
         </p>
+      )}
+
+      {pendingRoleChange && (
+        <div className="technical-admin-confirmation-backdrop">
+          <section
+            className="technical-admin-confirmation"
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="role-change-confirmation-title"
+            aria-describedby="role-change-confirmation-description"
+          >
+            <h2 id="role-change-confirmation-title">Confirm role change</h2>
+            <p id="role-change-confirmation-description">
+              Change {pendingRoleChange.user.fullName}&apos;s role from{' '}
+              <strong>{pendingRoleChange.user.role}</strong> to{' '}
+              <strong>{pendingRoleChange.nextRole}</strong>?
+            </p>
+            <div className="technical-admin-confirmation-actions">
+              <button
+                type="button"
+                className="button button-secondary"
+                onClick={cancelRoleChange}
+                disabled={Boolean(savingId)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="button button-primary"
+                onClick={confirmRoleChange}
+                disabled={Boolean(savingId)}
+              >
+                {savingId ? 'Saving…' : 'Confirm'}
+              </button>
+            </div>
+          </section>
+        </div>
       )}
 
       {loading ? (
@@ -216,7 +261,7 @@ export default function TechnicalAdminPage({ user: currentUser }) {
                       <select
                         aria-label={`Assign role to ${user.fullName}`}
                         value={selectedRoles[user.id] || user.role}
-                        disabled={Boolean(savingId)}
+                        disabled={Boolean(savingId) || Boolean(pendingRoleChange)}
                         onChange={event =>
                           setSelectedRoles(current => ({
                             ...current,
@@ -242,6 +287,7 @@ export default function TechnicalAdminPage({ user: currentUser }) {
                         className="button button-primary"
                         disabled={
                           Boolean(savingId) ||
+                          Boolean(pendingRoleChange) ||
                           selectedRoles[user.id] === user.role
                         }
                         onClick={() => handleSave(user)}

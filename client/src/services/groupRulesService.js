@@ -7,6 +7,6 @@ export async function getGroupRules() {
 export function saveGroupRules(rules) {
   return apiRequest('/group-rules', {
     method: 'POST',
-    body: JSON.stringify({ rules }),
+    body: JSON.stringify({ content: rules }),
   })
 }

@@ -11,6 +11,7 @@ function extractRules(payload) {
   if (!payload || typeof payload !== 'object') return ''
 
   const value =
+    payload.rule?.content ??
     payload.rules ??
     payload.content ??
     payload.text ??
