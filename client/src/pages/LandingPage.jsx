@@ -1,144 +1,136 @@
 import {
   ArrowRight,
+  ArrowUpRight,
   CalendarDays,
-  ClipboardList,
-  HandCoins,
+  Check,
+  ChevronDown,
+  CircleDollarSign,
+  ShieldCheck,
+  Sparkles,
   UsersRound,
 } from 'lucide-react'
+import './landing.css'
 
-const features = [
+const highlights = [
   {
-    icon: HandCoins,
-    title: 'See the full picture',
-    description: 'Keep contributions clear, organized, and easy to follow.',
+    number: '01',
+    icon: CircleDollarSign,
+    title: 'Money, made clear',
+    text: 'Keep contributions and group spending easy to understand, with every transaction in one place.',
   },
   {
+    number: '02',
     icon: UsersRound,
-    title: 'Bring people closer',
-    description: 'Give every member and officer a place in the conversation.',
+    title: 'Everyone in the loop',
+    text: 'Give members and officers a shared view of the people, decisions, and work that keep you moving.',
   },
   {
+    number: '03',
     icon: CalendarDays,
-    title: 'Keep plans in motion',
-    description: 'Bring meetings, minutes, and updates into one shared space.',
+    title: 'Plans with follow-through',
+    text: 'Bring meetings, minutes, and next steps together so good intentions turn into progress.',
   },
 ]
 
+function Brand({ footer = false }) {
+  return (
+    <a className={`gather-brand${footer ? ' gather-brand-footer' : ''}`} href="#top" aria-label="Gather home">
+      <span className="gather-mark"><span /></span>
+      <span>gather<span className="gather-brand-dot">.</span></span>
+    </a>
+  )
+}
+
 export default function LandingPage({ onLogin, onRegister }) {
-  function follow(event, action) {
+  const go = (event, action) => {
     event.preventDefault()
     action()
   }
 
   return (
-    <main className="landing-page" id="home">
-      <header className="landing-header">
-        <a className="landing-brand" href="#home" aria-label="Gather home">
-          <span className="landing-brand-mark">g</span>
-          <span>gather<span className="brand-period">.</span></span>
-        </a>
-        <nav className="landing-nav" aria-label="Account navigation">
-          <a href="#login" onClick={event => follow(event, onLogin)}>Sign in</a>
-          <a
-            className="primary-button landing-nav-cta"
-            href="#sign-up"
-            onClick={event => follow(event, onRegister)}
-          >
-            Create account <ArrowRight size={16} />
-          </a>
-        </nav>
+    <main className="gather-landing" id="top">
+      <header className="gather-header">
+        <Brand />
+        <div className="gather-header-actions">
+          <a className="gather-signin gather-action-button" href="#sign-in" onClick={event => go(event, onLogin)}>Login</a>
+          <a className="gather-button gather-button-dark" href="#sign-up" onClick={event => go(event, onRegister)}>Sign up <ArrowUpRight size={15} /></a>
+        </div>
       </header>
 
-      <section className="landing-hero">
-        <div className="landing-copy">
-          <span className="landing-kicker"><span /> YOUR COMMUNITY, IN ONE PLACE</span>
-          <h1>Bring your people together. <em>Move forward.</em></h1>
-          <p>
-            Make contributions easier to follow, keep everyone connected, and
-            turn group plans into shared progress.
-          </p>
-          <div className="landing-proof">
-            <span className="landing-proof-dot" />
-            <span>Contributions</span>
-            <i />
-            <span>People</span>
-            <i />
-            <span>Plans</span>
+      <section className="gather-hero">
+        <div className="gather-hero-copy">
+          <div className="gather-eyebrow"><span className="gather-eyebrow-star">✳</span> YOUR GROUP, ALL TOGETHER</div>
+          <h1>One group.<br />Many hands.<br /><em>More good.</em></h1>
+          <p className="gather-lede">One shared home for our members, contributions, and plans. Everyone can see what’s happening and help move our group forward.</p>
+          <div className="gather-hero-actions">
+            <a className="gather-button gather-button-green" href="#get-started" onClick={event => go(event, onRegister)}>
+              Join the group <ArrowRight size={16} />
+            </a>
           </div>
+          <div className="gather-trust-line"><span className="gather-trust-icon"><ShieldCheck size={15} /></span> Built for the people who build community</div>
         </div>
 
-        <div className="landing-visual" aria-label="A preview of the Gather community workspace">
-          <div className="landing-orbit landing-orbit-one" />
-          <div className="landing-orbit landing-orbit-two" />
-          <div className="landing-orbit-track" aria-hidden="true">
-            <span className="landing-orbit-tag orbit-tag-one">
-              <HandCoins size={14} /> Contributions
-            </span>
-            <span className="landing-orbit-tag orbit-tag-two">
-              <UsersRound size={14} /> Members
-            </span>
-            <span className="landing-orbit-tag orbit-tag-three">
-              <CalendarDays size={14} /> Meetings
-            </span>
+        <div className="gather-hero-art" aria-label="Illustration of a group workspace dashboard">
+          <div className="gather-art-sun" />
+          <div className="gather-art-caption"><span>ONE GROUP. MOVING TOGETHER.</span><span className="gather-caption-line" /></div>
+          <div className="gather-dash-card">
+            <div className="gather-dash-top">
+              <div className="gather-dash-identity"><span className="gather-dash-logo">g<span>.</span></span><span><b>Our Group</b><small>Shared group space</small></span></div>
+              <button className="gather-dash-more" aria-label="More dashboard options"><span /><span /><span /></button>
+            </div>
+            <div className="gather-dash-welcome"><small>OUR GROUP AT A GLANCE</small><h2>Growing together,<br />one step at a time.</h2></div>
+            <div className="gather-dash-stat">
+              <span className="gather-stat-icon"><CircleDollarSign size={17} /></span>
+              <span className="gather-stat-label"><small>Group balance</small><b>KES 84,250</b></span>
+              <span className="gather-stat-trend"><ArrowUpRight size={14} /> 8.4%</span>
+            </div>
+            <div className="gather-chart-wrap">
+              <div className="gather-chart-label"><span>Contribution activity</span><span>This month <ChevronDown size={12} /></span></div>
+              <div className="gather-chart" aria-hidden="true">
+                <div className="gather-chart-y"><i>KES 40k</i><i>KES 20k</i><i>0</i></div>
+                <div className="gather-chart-graph"><span className="gather-gridline" /><span className="gather-gridline" /><span className="gather-gridline" /><svg viewBox="0 0 340 94" preserveAspectRatio="none"><defs><linearGradient id="gather-fill" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stopColor="#a9cf8d" stopOpacity=".45" /><stop offset="100%" stopColor="#a9cf8d" stopOpacity="0" /></linearGradient></defs><path d="M0 76 C22 72 24 55 48 62 S74 70 96 48 S122 53 146 42 S170 53 194 31 S220 39 242 23 S271 29 292 14 S322 18 340 4 V94 H0Z" fill="url(#gather-fill)" /><path d="M0 76 C22 72 24 55 48 62 S74 70 96 48 S122 53 146 42 S170 53 194 31 S220 39 242 23 S271 29 292 14 S322 18 340 4" fill="none" stroke="#36835f" strokeWidth="2.5" vectorEffect="non-scaling-stroke" /></svg><div className="gather-chart-x"><i>Wk 1</i><i>Wk 2</i><i>Wk 3</i><i>Wk 4</i></div></div>
+              </div>
+            </div>
+            <div className="gather-next-meeting"><span className="gather-meeting-icon"><CalendarDays size={16} /></span><span><small>UP NEXT · GROUP MEETING</small><b>Sunday, 10:30 am</b></span><ArrowRight size={15} /></div>
           </div>
-          <div className="workspace-preview">
-            <div className="workspace-preview-top">
-              <span className="workspace-logo">g</span>
-              <div>
-                <strong>Your community hub</strong>
-                <small>Good things, growing together</small>
-              </div>
-              <span className="workspace-status"><i /> IN SYNC</span>
-            </div>
-            <div className="workspace-preview-rule" />
-            <div className="workspace-items">
-              <div className="workspace-item">
-                <span className="workspace-item-icon icon-contributions"><HandCoins size={18} /></span>
-                <span><strong>Shared contributions</strong><small>Clear records for everyone</small></span>
-                <ArrowRight size={15} />
-              </div>
-              <div className="workspace-item">
-                <span className="workspace-item-icon icon-members"><UsersRound size={18} /></span>
-                <span><strong>Your community</strong><small>People at the heart of it all</small></span>
-                <ArrowRight size={15} />
-              </div>
-              <div className="workspace-item">
-                <span className="workspace-item-icon icon-meetings"><CalendarDays size={18} /></span>
-                <span><strong>Plans that move</strong><small>Meetings, notes, and next steps</small></span>
-                <ArrowRight size={15} />
-              </div>
-            </div>
-            <div className="workspace-note">
-              <span><ClipboardList size={17} /></span>
-              <p><strong>One group.</strong> Moving as one.</p>
-            </div>
-          </div>
-          <span className="landing-spark landing-spark-one">✳</span>
-          <span className="landing-spark landing-spark-two">✦</span>
+          <div className="gather-art-note"><span className="gather-note-check"><Check size={13} /></span><span><b>One shared picture</b><small>Everyone in the loop.</small></span></div>
+          <span className="gather-art-spark gather-spark-one">✳</span><span className="gather-art-spark gather-spark-two">✦</span>
         </div>
       </section>
 
-      <section className="landing-features" aria-labelledby="landing-features-title">
-        <div className="landing-section-heading">
-          <span className="eyebrow">MADE FOR THE WAY GROUPS GROW</span>
-          <h2 id="landing-features-title">Less scattered. More together.</h2>
-          <p>Bring the everyday pieces of your community into one clear view.</p>
+      <section className="gather-strip" aria-label="Gather benefits">
+        <span>ONE GROUP, ONE SPACE</span><i />
+        <span><Check size={14} /> Contributions</span><i />
+        <span><Check size={14} /> Members</span><i />
+        <span><Check size={14} /> Meetings</span><i />
+        <span><Check size={14} /> Decisions</span>
+      </section>
+
+      <section className="gather-why" id="why-gather">
+        <div className="gather-section-intro">
+          <span className="gather-eyebrow">OUR GROUP, WORKING AS ONE</span>
+          <h2>Everything our group needs, together.</h2>
+          <p>Keep the details visible to everyone, so we can spend less time chasing updates and more time making progress together.</p>
         </div>
-        <div className="landing-feature-grid">
-          {features.map(({ icon: Icon, title, description }) => (
-            <article className="landing-feature" key={title}>
-              <span className="landing-feature-icon"><Icon size={20} /></span>
-              <h3>{title}</h3>
-              <p>{description}</p>
+        <div className="gather-feature-list">
+          {highlights.map(({ number, icon: Icon, title, text }) => (
+            <article className="gather-feature" key={number}>
+              <span className="gather-feature-number">{number}</span>
+              <span className="gather-feature-icon"><Icon size={21} strokeWidth={1.7} /></span>
+              <div><h3>{title}</h3><p>{text}</p></div>
+              <ArrowUpRight className="gather-feature-arrow" size={17} />
             </article>
           ))}
         </div>
       </section>
 
-      <footer className="landing-footer">
-        <a className="landing-footer-brand" href="#home">gather<span>.</span></a>
-        <span>Helping groups grow together.</span>
-      </footer>
+      <section className="gather-cta" id="how-it-works">
+        <div className="gather-cta-pattern" aria-hidden="true">✳</div>
+        <div><span className="gather-eyebrow">OUR NEXT CHAPTER STARTS HERE</span><h2>We go further<br />when we go together.</h2></div>
+        <div className="gather-cta-action"><p>Our shared space keeps every member connected and helps us shape what comes next for the group.</p></div>
+      </section>
+
+      <footer className="gather-footer"><Brand footer /><span>Made for groups moving forward, together.</span><span className="gather-footer-copy">© 2026 Gather. A little more together.</span><Sparkles className="gather-footer-spark" size={17} /></footer>
     </main>
   )
 }

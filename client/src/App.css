@@ -4114,3 +4114,38 @@ footer {
     linear-gradient(rgb(14 22 17 / 57%), rgb(14 22 17 / 74%)),
     url('./assets/Neon.jpeg');
 }
+.auth-submit {
+  min-height: 52px;
+  border: 2px solid #72a986;
+  border-radius: 11px;
+  font-size: 15px;
+  letter-spacing: .15px;
+  animation: auth-submit-border 2.6s ease-in-out infinite;
+}
+
+.auth-submit:hover:not(:disabled) {
+  border-color: #b8d2b7;
+  animation-play-state: paused;
+}
+
+.auth-submit:focus-visible {
+  outline: 3px solid #d4aa72;
+  outline-offset: 3px;
+}
+
+@keyframes auth-submit-border {
+  0%, 100% {
+    border-color: #72a986;
+    box-shadow: 0 8px 20px rgb(23 112 65 / 17%), 0 0 0 0 rgb(114 169 134 / 0%);
+  }
+  50% {
+    border-color: #d1ad77;
+    box-shadow: 0 8px 20px rgb(23 112 65 / 17%), 0 0 0 4px rgb(114 169 134 / 20%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-submit {
+    animation: none;
+  }
+}
