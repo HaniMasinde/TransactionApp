@@ -4,6 +4,7 @@ const path = require("node:path");
 require("dotenv").config({ path: path.resolve(__dirname, "../.env") });
 
 const app = require("./app");
+console.log("Loaded app from:", require.resolve("./app"));
 const { pool } = require("./config/database");
 
 const PORT = process.env.PORT || 5000;

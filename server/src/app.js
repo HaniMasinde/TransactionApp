@@ -56,7 +56,7 @@ app.use(
 );
 
 
-app.use("/", apiRoutes);
+app.use("/api", apiRoutes);
 
 app.use((req, res) => {
   res.status(404).json({
