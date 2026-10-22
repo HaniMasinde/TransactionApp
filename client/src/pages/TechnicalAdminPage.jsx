@@ -149,9 +149,10 @@ export default function TechnicalAdminPage({ user: currentUser }) {
       </section>
 
       {error && (
-        <p className="app-error" role="alert">
-          {error}
-        </p>
+        <div className="technical-admin-error" role="alert">
+          <strong>Why this failed</strong>
+          <p>{error}</p>
+        </div>
       )}
 
       {notice && (
@@ -205,7 +206,7 @@ export default function TechnicalAdminPage({ user: currentUser }) {
                   <td>
                     {user.id === currentUser?.id ? (
                       <span className="technical-admin-role-lock">
-                        Your role cannot be changed here
+                        Technical_admin
                       </span>
                     ) : (
                       <select
@@ -254,7 +255,6 @@ export default function TechnicalAdminPage({ user: currentUser }) {
 
       <p className="technical-admin-footnote">
         Every successful role change is recorded in the system audit log.
-        Public registration remains restricted to the Member role.
       </p>
     </section>
   )

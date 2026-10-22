@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { registerAccount } from '../services/authService.js'
 import AuthLayout from '../components/AuthLayout.jsx'
+import PasswordInput from '../components/PasswordInput.jsx'
 
 export default function RegisterPage({ onLogin, onHome }) {
   const [fullName, setFullName] = useState('')
@@ -12,6 +13,11 @@ export default function RegisterPage({ onLogin, onHome }) {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const passwordHasLetter = /[A-Za-z]/.test(password)
+  const passwordHasDigit = /\d/.test(password)
+  const passwordHasSpecial = /[^A-Za-z0-9\s]/.test(password)
+  const passwordHasValidLength = password.length >= 8 && password.length <= 15
+  const passwordIsValid = passwordHasLetter && passwordHasDigit && passwordHasSpecial && passwordHasValidLength
 
   async function handleSubmit(event) {
     event.preventDefault()
@@ -20,6 +26,11 @@ export default function RegisterPage({ onLogin, onHome }) {
 
     if (password !== confirmPassword) {
       setError('The passwords do not match.')
+      return
+    }
+
+    if (!passwordIsValid) {
+      setError('Use 8–15 characters with at least one letter, one digit, and one special character.')
       return
     }
 
@@ -94,29 +105,37 @@ export default function RegisterPage({ onLogin, onHome }) {
           />
 
           <label htmlFor="register-password">Password</label>
-          <input
+          <PasswordInput
             id="register-password"
             name="password"
-            type="password"
             autoComplete="new-password"
             placeholder="Create a password"
             value={password}
             onChange={event => setPassword(event.target.value)}
             required
+            maxLength={15}
           />
+          <p className="password-requirements" aria-live="polite">
+            Password must be 8–15 characters and include a letter, a digit, and a special character.
+            {password.length > 0 && (
+              <span className={passwordIsValid ? 'password-requirements-status valid' : 'password-requirements-status'}>
+                {passwordIsValid ? ' Password meets all requirements.' : ' Password requirements not met yet.'}
+              </span>
+            )}
+          </p>
 
           <label htmlFor="register-confirm-password">
             Confirm password
           </label>
-          <input
+          <PasswordInput
             id="register-confirm-password"
             name="confirmPassword"
-            type="password"
             autoComplete="new-password"
             placeholder="Re-enter your password"
             value={confirmPassword}
             onChange={event => setConfirmPassword(event.target.value)}
             required
+            maxLength={15}
           />
 
           {error && (

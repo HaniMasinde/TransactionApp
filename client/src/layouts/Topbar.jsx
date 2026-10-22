@@ -1,4 +1,4 @@
-import { Bell, Menu } from 'lucide-react'
+import { Bell, Menu, Moon, Sun } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { getUnreadNotificationCount } from '../services/notificationService.js'
 
@@ -6,7 +6,16 @@ function displayName(user) {
   return user?.fullName || user?.name || user?.full_name || 'Account'
 }
 
-export default function Topbar({ title, user, onLogout, onMenuClick, onNavigate, page }) {
+export default function Topbar({
+  title,
+  user,
+  theme,
+  onThemeToggle,
+  onLogout,
+  onMenuClick,
+  onNavigate,
+  page,
+}) {
   const [unreadCount, setUnreadCount] = useState(0)
   const name = displayName(user)
   const initials = name
@@ -61,6 +70,16 @@ export default function Topbar({ title, user, onLogout, onMenuClick, onNavigate,
         </nav>
       </div>
       <div className="topbar-actions">
+        <button
+          className="theme-toggle"
+          type="button"
+          aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+          title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+          onClick={onThemeToggle}
+        >
+          {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+          <span>{theme === 'dark' ? 'Light mode' : 'Dark mode'}</span>
+        </button>
         <button
           className="notification-shortcut"
           type="button"

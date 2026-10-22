@@ -1,6 +1,7 @@
 
 import { useState } from 'react'
 import AuthLayout from '../components/AuthLayout.jsx'
+import PasswordInput from '../components/PasswordInput.jsx'
 
 export default function LoginPage({ onLogin, onRegister, onHome }) {
   const [phone, setPhone] = useState('')
@@ -46,10 +47,9 @@ export default function LoginPage({ onLogin, onRegister, onHome }) {
           />
 
           <label htmlFor="login-password">Password</label>
-          <input
+          <PasswordInput
             id="login-password"
             name="password"
-            type="password"
             autoComplete="current-password"
             placeholder="Enter your password"
             value={password}

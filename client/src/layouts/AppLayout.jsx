@@ -20,6 +20,8 @@ const titles = {
 export default function AppLayout({
   page,
   user,
+  theme,
+  onThemeToggle,
   onNavigate,
   onLogout,
   children,
@@ -27,7 +29,7 @@ export default function AppLayout({
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
 
   return (
-    <div className="app-shell">
+    <div className="app-shell" data-theme={theme}>
       {mobileNavOpen && (
         <button
           className="sidebar-backdrop"
@@ -47,6 +49,8 @@ export default function AppLayout({
         <Topbar
           title={titles[page] || 'Workspace'}
           user={user}
+          theme={theme}
+          onThemeToggle={onThemeToggle}
           onLogout={onLogout}
           onNavigate={onNavigate}
           page={page}

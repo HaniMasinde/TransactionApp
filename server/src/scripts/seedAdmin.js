@@ -119,8 +119,12 @@ async function main() {
       throw new Error("Enter a valid recovery email address.");
     }
 
-    if (password.length < 10 || password.length > 128) {
-      throw new Error("Password must be between 10 and 128 characters.");
+    if (password.length < 8 || password.length > 40) {
+      throw new Error("Password must be between 8 and 40 characters.");
+    }
+
+    if (!/[A-Za-z]/.test(password) || !/\d/.test(password) || !/[^A-Za-z0-9\s]/.test(password)) {
+      throw new Error("Password must include a letter, a digit, and a special character.");
     }
 
     if (password !== confirmation) {

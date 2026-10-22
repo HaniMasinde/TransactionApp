@@ -48,8 +48,20 @@ function validateRegistration(body) {
     return "Enter a valid recovery email address";
   }
 
-  if (typeof password !== "string" || password.length < 8 || password.length > 15) {
-    return "Password must be between 8 and 15 characters";
+  if (typeof password !== "string" || password.length < 8 || password.length > 40) {
+    return "Password must be between 8 and 40 characters";
+  }
+
+  if (!/[A-Za-z]/.test(password)) {
+    return "Password must include at least one letter";
+  }
+
+  if (!/\d/.test(password)) {
+    return "Password must include at least one digit";
+  }
+
+  if (!/[^A-Za-z0-9\s]/.test(password)) {
+    return "Password must include at least one special character";
   }
 
   return null;

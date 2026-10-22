@@ -1312,6 +1312,29 @@ footer span {
   background: #eff8f1;
 }
 
+.technical-admin-error {
+  display: grid;
+  gap: 5px;
+  margin: 0 0 16px;
+  padding: 13px 16px;
+  border: 1px solid #e7b9b9;
+  border-left: 4px solid #b42318;
+  border-radius: 10px;
+  color: #7a2520;
+  background: #fff4f2;
+}
+
+.technical-admin-error strong {
+  color: #8f211b;
+  font-size: 12px;
+}
+
+.technical-admin-error p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
 .technical-admin-footnote {
   color: var(--muted);
   font-size: 11px;
@@ -3553,6 +3576,279 @@ footer {
   min-width: 0;
 }
 
+.password-input-wrap {
+  position: relative;
+  display: block;
+  width: 100%;
+}
+
+.password-input-wrap input {
+  padding-right: 48px;
+}
+
+.password-visibility-toggle {
+  position: absolute;
+  top: 50%;
+  right: 7px;
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  transform: translateY(-50%);
+  border: 0;
+  border-radius: 8px;
+  color: #69766d;
+  background: transparent;
+}
+
+.password-visibility-toggle:hover {
+  color: var(--green-dark);
+  background: #eef6f0;
+}
+
+.password-requirements {
+  margin: 0;
+  color: #77817b;
+  font-size: 10px;
+  line-height: 1.55;
+}
+
+.password-requirements-status {
+  display: block;
+  color: #9a5b13;
+}
+
+.password-requirements-status.valid {
+  color: #18794e;
+}
+
+.theme-toggle {
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: #536258;
+  background: #fff;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.theme-toggle:hover {
+  color: var(--green-dark);
+  background: var(--green-soft);
+}
+
+.app-shell[data-theme='dark'] {
+  --ink: #e7eee9;
+  --muted: #a0aea4;
+  --border: #2c3a30;
+  --surface: #17211b;
+  --page: #0e1611;
+  --green-soft: #1b3926;
+  color: #e7eee9;
+  background: #0e1611;
+}
+
+.app-shell[data-theme='dark'] .main-area {
+  background: #0e1611;
+}
+
+.app-shell[data-theme='dark'] .feature-page {
+  color: #e7eee9;
+}
+
+.app-shell[data-theme='dark'] .sidebar,
+.app-shell[data-theme='dark'] .topbar,
+.app-shell[data-theme='dark'] .content-card,
+.app-shell[data-theme='dark'] .stat-card,
+.app-shell[data-theme='dark'] .report-card,
+.app-shell[data-theme='dark'] .approval-card,
+.app-shell[data-theme='dark'] .account-card,
+.app-shell[data-theme='dark'] .feature-card,
+.app-shell[data-theme='dark'] .feature-table-wrap,
+.app-shell[data-theme='dark'] .technical-admin-table-wrap,
+.app-shell[data-theme='dark'] .technical-admin-summary,
+.app-shell[data-theme='dark'] .technical-admin-empty,
+.app-shell[data-theme='dark'] .transaction-reversal-dialog {
+  border-color: #2c3a30;
+  color: #e7eee9;
+  background: #17211b;
+}
+
+.app-shell[data-theme='dark'] .topbar {
+  background: rgb(20 30 23 / 94%);
+}
+
+.app-shell[data-theme='dark'] .topbar-identity,
+.app-shell[data-theme='dark'] .profile-button,
+.app-shell[data-theme='dark'] .breadcrumb b,
+.app-shell[data-theme='dark'] .page-header h1,
+.app-shell[data-theme='dark'] .card-heading h2,
+.app-shell[data-theme='dark'] .account-card h2,
+.app-shell[data-theme='dark'] .report-card h2,
+.app-shell[data-theme='dark'] .feature-page__header h1,
+.app-shell[data-theme='dark'] .meeting-details h2,
+.app-shell[data-theme='dark'] .technical-admin-summary strong,
+.app-shell[data-theme='dark'] .technical-admin-table td strong {
+  color: #e7eee9;
+}
+
+.app-shell[data-theme='dark'] .breadcrumb,
+.app-shell[data-theme='dark'] .page-header p,
+.app-shell[data-theme='dark'] .card-heading p,
+.app-shell[data-theme='dark'] .feature-page__header p,
+.app-shell[data-theme='dark'] .feature-muted,
+.app-shell[data-theme='dark'] .technical-admin-summary,
+.app-shell[data-theme='dark'] .technical-admin-footnote,
+.app-shell[data-theme='dark'] footer {
+  color: #a0aea4;
+}
+
+.app-shell[data-theme='dark'] .sidebar-nav-item {
+  color: #b0beb4;
+}
+
+.app-shell[data-theme='dark'] .sidebar-nav-item:hover,
+.app-shell[data-theme='dark'] .profile-button:hover {
+  color: #c4f1d0;
+  background: #1d3023;
+}
+
+.app-shell[data-theme='dark'] .sidebar-nav-item.active {
+  border-color: #30543a;
+  color: #c4f1d0;
+  background: #1b3926;
+}
+
+.app-shell[data-theme='dark'] .sidebar-section-title,
+.app-shell[data-theme='dark'] .sidebar-user-copy small,
+.app-shell[data-theme='dark'] .technical-admin-email {
+  color: #899a8e;
+}
+
+.app-shell[data-theme='dark'] .group-card,
+.app-shell[data-theme='dark'] .technical-admin-staffing {
+  border-color: #2c3a30;
+  background: #17211b;
+}
+
+.app-shell[data-theme='dark'] .technical-admin-staffing h2,
+.app-shell[data-theme='dark'] .technical-admin-staffing li {
+  color: #e7eee9;
+}
+
+.app-shell[data-theme='dark'] .technical-admin-staffing li {
+  background: #202c24;
+}
+
+.app-shell[data-theme='dark'] .technical-admin-table thead,
+.app-shell[data-theme='dark'] thead {
+  background: #202c24;
+}
+
+.app-shell[data-theme='dark'] th {
+  color: #a0aea4;
+}
+
+.app-shell[data-theme='dark'] td {
+  border-color: #29372d;
+  color: #c1ccc4;
+}
+
+.app-shell[data-theme='dark'] tbody tr:hover {
+  background: #1d2a21;
+}
+
+.app-shell[data-theme='dark'] .toolbar input,
+.app-shell[data-theme='dark'] .toolbar select,
+.app-shell[data-theme='dark'] .account-form input,
+.app-shell[data-theme='dark'] .account-form select,
+.app-shell[data-theme='dark'] .account-form textarea,
+.app-shell[data-theme='dark'] .feature-input,
+.app-shell[data-theme='dark'] .feature-select,
+.app-shell[data-theme='dark'] .feature-textarea,
+.app-shell[data-theme='dark'] .technical-admin-table select,
+.app-shell[data-theme='dark'] .weekly-report-controls input,
+.app-shell[data-theme='dark'] .payment-entry-form select,
+.app-shell[data-theme='dark'] .transaction-reversal-dialog textarea {
+  border-color: #3a4a3e;
+  color: #e7eee9;
+  background: #101913;
+}
+
+.app-shell[data-theme='dark'] .secondary-button,
+.app-shell[data-theme='dark'] .feature-button,
+.app-shell[data-theme='dark'] .logout-button,
+.app-shell[data-theme='dark'] .notification-shortcut,
+.app-shell[data-theme='dark'] .mobile-menu-button,
+.app-shell[data-theme='dark'] .theme-toggle {
+  border-color: #3a4a3e;
+  color: #d0d9d2;
+  background: #1b2820;
+}
+
+.app-shell[data-theme='dark'] .secondary-button:hover,
+.app-shell[data-theme='dark'] .feature-button:hover,
+.app-shell[data-theme='dark'] .logout-button:hover,
+.app-shell[data-theme='dark'] .notification-shortcut:hover,
+.app-shell[data-theme='dark'] .theme-toggle:hover {
+  color: #c4f1d0;
+  background: #24372a;
+}
+
+.app-shell[data-theme='dark'] .primary-button,
+.app-shell[data-theme='dark'] .button-primary,
+.app-shell[data-theme='dark'] .feature-button--primary {
+  border-color: #18794e;
+  color: #fff;
+  background: #18794e;
+}
+
+.app-shell[data-theme='dark'] .feature-pill,
+.app-shell[data-theme='dark'] td code {
+  color: #c0ccc3;
+  background: #26332a;
+}
+
+.app-shell[data-theme='dark'] .notice-card,
+.app-shell[data-theme='dark'] .help-card {
+  border-color: #31533b;
+  background: #192d20;
+}
+
+.app-shell[data-theme='dark'] .notice-card b,
+.app-shell[data-theme='dark'] .notice-card p,
+.app-shell[data-theme='dark'] .help-card b,
+.app-shell[data-theme='dark'] .help-card small {
+  color: #c4d8c9;
+}
+
+.app-shell[data-theme='dark'] .report-mark {
+  color: #9ce5ae;
+  background: #1b3926;
+}
+
+.app-shell[data-theme='dark'] .person-cell,
+.app-shell[data-theme='dark'] .amount,
+.app-shell[data-theme='dark'] .approval-card > p,
+.app-shell[data-theme='dark'] .weekly-report-controls label,
+.app-shell[data-theme='dark'] .account-form label,
+.app-shell[data-theme='dark'] .transaction-reversal-dialog label {
+  color: #d5dfd8;
+}
+
+.app-shell[data-theme='dark'] .meeting-details__date {
+  color: #9ce5ae;
+}
+
+.app-shell[data-theme='dark'] .meeting-details__description {
+  color: #a0aea4;
+}
+
 .landing-orbit-one {
   width: min(410px, 94vw);
   height: auto;
@@ -3607,6 +3903,16 @@ footer {
     flex: 0 0 auto;
   }
 
+  .theme-toggle {
+    width: 34px;
+    min-height: 34px;
+    padding: 0;
+  }
+
+  .theme-toggle span {
+    display: none;
+  }
+
   .topbar-identity {
     display: none;
   }
@@ -3647,4 +3953,9 @@ footer {
   .landing-spark {
     display: none;
   }
+
+  .landing-nav {
+    gap: 9px;
+  }
+
 }

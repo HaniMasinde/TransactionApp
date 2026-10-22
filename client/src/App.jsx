@@ -41,6 +41,13 @@ function defaultPageFor(user) {
 
 export default function App() {
   const [user, setUser] = useState(null)
+  const [theme, setTheme] = useState(() => {
+    try {
+      return window.localStorage.getItem('gather-theme') === 'light' ? 'light' : 'dark'
+    } catch {
+      return 'dark'
+    }
+  })
   const [page, setPage] = useState('dashboard')
   const [checkingSession, setCheckingSession] = useState(true)
   const [appError, setAppError] = useState('')
@@ -94,6 +101,16 @@ export default function App() {
       phone: account.phone,
       recoveryEmail: account.recoveryEmail,
     }))
+  }
+
+  function handleThemeToggle() {
+    const nextTheme = theme === 'dark' ? 'light' : 'dark'
+    setTheme(nextTheme)
+    try {
+      window.localStorage.setItem('gather-theme', nextTheme)
+    } catch {
+      // Keep the current session toggle working when storage is unavailable.
+    }
   }
 
   if (checkingSession) {
@@ -165,6 +182,8 @@ export default function App() {
     <AppLayout
       page={safePage}
       user={user}
+      theme={theme}
+      onThemeToggle={handleThemeToggle}
       onNavigate={setPage}
       onLogout={handleLogout}
     >
