@@ -1,5 +1,6 @@
 
 import { useState } from 'react'
+import { ArrowRight, LockKeyhole, Smartphone } from 'lucide-react'
 import AuthLayout from '../components/AuthLayout.jsx'
 import PasswordInput from '../components/PasswordInput.jsx'
 import useAutoDismiss from '../hooks/useAutoDismiss.js'
@@ -38,27 +39,33 @@ export default function LoginPage({ onLogin, onRegister, onHome }) {
     >
       <form className="auth-form" onSubmit={handleSubmit}>
           <label htmlFor="login-phone">Phone number</label>
-          <input
-            id="login-phone"
-            name="phone"
-            type="tel"
-            autoComplete="tel"
-            placeholder="Enter your registered phone number"
-            value={phone}
-            onChange={event => setPhone(event.target.value)}
-            required
-          />
+          <span className="auth-input-icon-wrap">
+            <Smartphone className="auth-input-icon" size={18} aria-hidden="true" />
+            <input
+              id="login-phone"
+              name="phone"
+              type="tel"
+              autoComplete="tel"
+              placeholder="Enter your registered phone number"
+              value={phone}
+              onChange={event => setPhone(event.target.value)}
+              required
+            />
+          </span>
 
           <label htmlFor="login-password">Password</label>
-          <PasswordInput
-            id="login-password"
-            name="password"
-            autoComplete="current-password"
-            placeholder="Enter your password"
-            value={password}
-            onChange={event => setPassword(event.target.value)}
-            required
-          />
+          <span className="auth-input-icon-wrap auth-password-icon-wrap">
+            <LockKeyhole className="auth-input-icon" size={18} aria-hidden="true" />
+            <PasswordInput
+              id="login-password"
+              name="password"
+              autoComplete="current-password"
+              placeholder="Enter your password"
+              value={password}
+              onChange={event => setPassword(event.target.value)}
+              required
+            />
+          </span>
 
           {error && (
             <p className="auth-error" role="alert">
@@ -71,7 +78,7 @@ export default function LoginPage({ onLogin, onRegister, onHome }) {
             type="submit"
             disabled={submitting}
           >
-            {submitting ? 'Signing in…' : 'Sign in'}
+            {submitting ? 'Signing in…' : <>Sign in <ArrowRight size={18} /></>}
           </button>
       </form>
 

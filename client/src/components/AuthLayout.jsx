@@ -1,4 +1,4 @@
-import { ArrowUpRight, HandCoins, Sparkles, UsersRound } from 'lucide-react'
+import { CalendarDays, Check, HandCoins, Sparkles } from 'lucide-react'
 
 export default function AuthLayout({
   children,
@@ -40,16 +40,20 @@ export default function AuthLayout({
                 <strong>Group contributions</strong>
                 <small>One clear picture</small>
               </span>
-              <ArrowUpRight className="auth-story-arrow" size={17} />
+              <span className="auth-story-live"><i /> In sync</span>
             </div>
             <div className="auth-story-progress"><span /></div>
             <div className="auth-story-card-bottom">
-              <span><UsersRound size={14} /> Your community</span>
-              <span className="auth-story-live"><i /> In sync</span>
+              <span className="auth-story-people"><i>A</i><i>B</i><i>C</i><b>Your community</b></span>
+              <span className="auth-story-meeting"><CalendarDays size={14} /> Sunday, 10:30 am</span>
             </div>
           </div>
 
-          <p className="auth-story-footer">A shared space for your community.</p>
+          <div className="auth-story-footer" aria-label="Group tools">
+            <span><Check size={13} /> Contributions</span>
+            <span><Check size={13} /> Members</span>
+            <span><Check size={13} /> Meetings</span>
+          </div>
         </aside>
 
         <section className="auth-card">
