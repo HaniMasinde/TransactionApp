@@ -30,6 +30,8 @@ unset ADMIN_PASSWORD
 
 Repeat with the chairperson's name, phone, and `ADMIN_ROLE=chairperson`. The database allows only one active treasurer and one active chairperson. The current treasurer can transfer the treasurer role to an active member with `POST /api/admin/roles/transfer-treasurer`; the current chairperson can transfer the chairperson role with `POST /api/admin/roles/transfer-chairperson`. Both accept `{ "userId": "..." }`.
 
+The initial Technical Administrator is provisioned separately with `npm run seed:technical-admin`. Its password must be 8–40 characters and include uppercase and lowercase letters, a digit, and a special character. The same requirement is enforced when a Technical Administrator changes their password.
+
 ## Role permissions
 
 | Resource or action | Member | Treasurer | Chairperson |

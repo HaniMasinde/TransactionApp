@@ -28,18 +28,22 @@ function validateRequest(validator) {
         return next();
       }
 
-      // Supports custom validators returning true, false, or an error list.
+      // Custom body validators return null when valid or an error string.
       if (typeof validator === "function") {
-        const result = validator(req);
+        const result = validator(req.body, req);
 
         if (result && typeof result.then === "function") {
           return result
             .then((value) => {
-              if (value === false || Array.isArray(value)) {
+              if (typeof value === "string" || value === false || Array.isArray(value)) {
                 return res.status(400).json({
                   success: false,
                   message: "Request validation failed.",
-                  errors: Array.isArray(value) ? value : [],
+                  errors: typeof value === "string"
+                    ? [value]
+                    : Array.isArray(value)
+                      ? value
+                      : [],
                 });
               }
 
@@ -48,11 +52,15 @@ function validateRequest(validator) {
             .catch(next);
         }
 
-        if (result === false || Array.isArray(result)) {
+        if (typeof result === "string" || result === false || Array.isArray(result)) {
           return res.status(400).json({
             success: false,
             message: "Request validation failed.",
-            errors: Array.isArray(result) ? result : [],
+            errors: typeof result === "string"
+              ? [result]
+              : Array.isArray(result)
+                ? result
+                : [],
           });
         }
 

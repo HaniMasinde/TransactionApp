@@ -15,6 +15,7 @@ require("dotenv").config({
 const bcrypt = require("bcryptjs");
 const readline = require("readline");
 const { pool } = require("../config/database");
+const { isTechnicalAdminPassword } = require("../utils/passwordPolicy");
 
 const CONFIRMATION_FLAG = "--confirm-initial-technical-admin";
 const LOCK_KEY = "gcms_initial_technical_admin_bootstrap";
@@ -96,7 +97,7 @@ async function main() {
     const phone = normalizePhone(await ask(rl, "Phone number: "));
     const email = (await ask(rl, "Recovery email: ")).trim().toLowerCase();
 
-    const password = await ask(rl, "New password (hidden): ", {
+    const password = await ask(rl, "New password (8-40 characters; uppercase, lowercase, digit, special character; hidden): ", {
       secret: true,
     });
     const confirmation = await ask(rl, "Confirm password (hidden): ", {
@@ -115,12 +116,10 @@ async function main() {
       throw new Error("Enter a valid recovery email address.");
     }
 
-    if (password.length < 8 || password.length > 40) {
-      throw new Error("Password must be between 8 and 40 characters.");
-    }
-
-    if (!/[A-Za-z]/.test(password) || !/\d/.test(password) || !/[^A-Za-z0-9\s]/.test(password)) {
-      throw new Error("Password must include a letter, a digit, and a special character.");
+    if (!isTechnicalAdminPassword(password)) {
+      throw new Error(
+        "Password must be 8-40 characters and include uppercase and lowercase letters, a digit, and a special character."
+      );
     }
 
     if (password !== confirmation) {

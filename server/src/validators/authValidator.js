@@ -1,5 +1,7 @@
 "use strict";
 
+const { isTechnicalAdminPassword } = require("../utils/passwordPolicy");
+
 const PHONE_RE = /^\+?[0-9]{9,15}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -87,7 +89,7 @@ function validateLogin(body) {
   return null;
 }
 
-function validateChangePassword(body) {
+function validateChangePassword(body, req) {
   const unknown = rejectUnknownFields(body, ["currentPassword", "newPassword"]);
   if (unknown) return unknown;
 
@@ -98,6 +100,9 @@ function validateChangePassword(body) {
   const password = body.newPassword;
   if (typeof password !== "string" || password.length < 8 || password.length > 40) {
     return "New password must be between 8 and 40 characters.";
+  }
+  if (req?.user?.role === "technical_admin" && !isTechnicalAdminPassword(password)) {
+    return "Technical Administrator passwords must include uppercase and lowercase letters, a digit, and a special character.";
   }
   if (!/[A-Za-z]/.test(password) || !/\d/.test(password) || !/[^A-Za-z0-9\s]/.test(password)) {
     return "New password must include a letter, a number, and a special character.";

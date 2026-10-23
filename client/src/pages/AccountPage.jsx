@@ -5,7 +5,8 @@ import { changePassword } from '../services/authService.js'
 import { getMyAccount, updateMyAccount } from '../services/memberService.js'
 import useAutoDismiss from '../hooks/useAutoDismiss.js'
 
-export default function AccountPage({ onAccountUpdated }) {
+export default function AccountPage({ user, onAccountUpdated }) {
+  const requiresStrongPassword = user?.role === 'technical_admin'
   const [account, setAccount] = useState(null)
   const [fullName, setFullName] = useState('')
   const [phone, setPhone] = useState('')
@@ -85,8 +86,21 @@ export default function AccountPage({ onAccountUpdated }) {
       return
     }
 
-    if (!/[A-Za-z]/.test(newPassword) || !/\d/.test(newPassword) || !/[^A-Za-z0-9\s]/.test(newPassword)) {
-      setPasswordError('Use a password with a letter, a number, and a special character.')
+    const hasRequiredCharacters = requiresStrongPassword
+      ? /[A-Z]/.test(newPassword) &&
+        /[a-z]/.test(newPassword) &&
+        /\d/.test(newPassword) &&
+        /[^A-Za-z0-9\s]/.test(newPassword)
+      : /[A-Za-z]/.test(newPassword) &&
+        /\d/.test(newPassword) &&
+        /[^A-Za-z0-9\s]/.test(newPassword)
+
+    if (!hasRequiredCharacters) {
+      setPasswordError(
+        requiresStrongPassword
+          ? 'Use uppercase and lowercase letters, a number, and a special character.'
+          : 'Use a password with a letter, a number, and a special character.',
+      )
       return
     }
 
@@ -235,7 +249,11 @@ export default function AccountPage({ onAccountUpdated }) {
             />
           </label>
 
-          <p className="password-change-hint">8–40 characters, including a letter, a number, and a special character.</p>
+          <p className="password-change-hint">
+            {requiresStrongPassword
+              ? '8–40 characters, including uppercase and lowercase letters, a number, and a special character.'
+              : '8–40 characters, including a letter, a number, and a special character.'}
+          </p>
 
           <label htmlFor="confirm-new-password">
             Confirm new password
