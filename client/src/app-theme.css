@@ -1,0 +1,488 @@
+/* Shared blue dashboard theme for every signed-in page. */
+.app-shell {
+  --green: #2451dc;
+  --green-dark: #193fc0;
+  --green-soft: #eaf0ff;
+  --ink: #17254b;
+  --muted: #6b7ca4;
+  --border: #e2e9f8;
+  --surface: #fff;
+  --page: #f0f4ff;
+  color: var(--ink);
+  background: var(--page);
+}
+
+.app-shell .main-area {
+  background: var(--page);
+}
+
+.app-shell .sidebar,
+.app-shell .topbar {
+  background: #fff;
+  border-color: var(--border);
+}
+
+.app-shell .sidebar-brand-icon,
+.app-shell .sidebar-user .avatar {
+  color: #fff;
+  background: #2451dc;
+}
+
+.app-shell .sidebar-brand-text strong span {
+  color: #2451dc;
+}
+
+.app-shell .sidebar-brand-text small {
+  display: none;
+}
+
+.app-shell .technical-admin-group-card {
+  background: #f0f4ff;
+}
+
+.app-shell .sidebar-section-title,
+.app-shell .breadcrumb,
+.app-shell .sidebar-user-copy small {
+  color: #7182a8;
+}
+
+.app-shell .sidebar-nav-item {
+  color: #64769e;
+  border-color: transparent;
+}
+
+.app-shell .sidebar-nav-item:hover:not(.active),
+.app-shell .profile-button:hover,
+.app-shell .theme-toggle:hover {
+  color: #2451dc;
+  background: #f5f7fd;
+}
+
+.app-shell .sidebar-nav-item.active {
+  color: #2451dc;
+  background: #eaf0ff;
+  border-color: transparent;
+}
+
+.app-shell .sidebar-nav-item.active svg,
+.app-shell .eyebrow,
+.app-shell .link-button {
+  color: #2451dc;
+}
+
+.app-shell .topbar-identity,
+.app-shell .profile-button,
+.app-shell .breadcrumb b,
+.app-shell .page-header h1,
+.app-shell .card-heading h2,
+.app-shell .account-card h2,
+.app-shell .report-card h2,
+.app-shell .feature-page__header h1,
+.app-shell .meeting-details h2 {
+  color: #17254b;
+}
+
+.app-shell .page-header p,
+.app-shell .feature-page__header p,
+.app-shell .card-heading p,
+.app-shell .feature-muted,
+.app-shell footer {
+  color: #6b7ca4;
+}
+
+.app-shell .content-card,
+.app-shell .stat-card,
+.app-shell .report-card,
+.app-shell .approval-card,
+.app-shell .account-card,
+.app-shell .feature-card,
+.app-shell .feature-table-wrap,
+.app-shell .technical-admin-table-wrap,
+.app-shell .technical-admin-summary,
+.app-shell .technical-admin-empty,
+.app-shell .technical-admin-confirmation {
+  border-color: #e2e9f8;
+  background: #fff;
+  box-shadow: 0 8px 26px rgb(36 65 135 / 5%);
+}
+
+.app-shell .stat-card {
+  position: relative;
+  border-radius: 18px;
+}
+
+.app-shell .stat-card .stat-visual {
+  position: absolute;
+  top: 35px;
+  right: 22px;
+}
+
+.app-shell .stat-card .stat-visual-sparkline {
+  width: 88px;
+  height: 38px;
+  overflow: visible;
+}
+
+.app-shell .stat-visual-sparkline path {
+  fill: none;
+  stroke: #687fdf;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.app-shell .stat-visual-sparkline circle {
+  fill: #8b9ef5;
+  filter: drop-shadow(0 0 4px #8b9ef5);
+}
+
+.app-shell .stat-card .stat-visual-donut {
+  top: 19px;
+  width: 56px;
+  height: 56px;
+  border: 4px solid #dce5f7;
+  border-radius: 50%;
+  background: conic-gradient(#416cdb 0 67%, #58b58c 67% 84%, #e4a244 84% 91%, #776fd0 91% 100%);
+  box-shadow: 0 3px 10px rgb(0 0 0 / 14%);
+}
+
+.app-shell .stat-card .stat-visual-donut::after {
+  position: absolute;
+  inset: 12px;
+  border-radius: inherit;
+  background: #fff;
+  content: '';
+}
+
+.app-shell .stat-card .stat-visual-bars {
+  top: 24px;
+  display: flex;
+  height: 57px;
+  align-items: end;
+  gap: 8px;
+}
+
+.app-shell .stat-visual-bars i {
+  width: 9px;
+  border-radius: 3px 3px 0 0;
+  background: #727cc9;
+}
+
+.app-shell .stat-visual-bars i:nth-child(1) { height: 25%; opacity: .55; }
+.app-shell .stat-visual-bars i:nth-child(2) { height: 90%; background: #5379e6; }
+.app-shell .stat-visual-bars i:nth-child(3) { height: 42%; opacity: .65; }
+.app-shell .stat-visual-bars i:nth-child(4) { height: 76%; background: #8998ed; }
+
+.app-shell[data-theme='dark'] .stat-visual-sparkline path {
+  stroke: #9aa7ff;
+}
+
+.app-shell[data-theme='dark'] .stat-visual-sparkline circle {
+  fill: #bbc4ff;
+  filter: drop-shadow(0 0 4px #a5aaff);
+}
+
+.app-shell[data-theme='dark'] .stat-card .stat-visual-donut {
+  border-color: #27334d;
+}
+
+.app-shell[data-theme='dark'] .stat-card .stat-visual-donut::after {
+  background: #273047;
+}
+
+.app-shell[data-theme='dark'] .stat-visual-bars i {
+  background: #727cc9;
+}
+
+.app-shell[data-theme='dark'] .stat-visual-bars i:nth-child(2) { background: #5379e6; }
+.app-shell[data-theme='dark'] .stat-visual-bars i:nth-child(4) { background: #8998ed; }
+
+.app-shell .stat-dark {
+  border-color: #2451dc;
+  background: #2451dc;
+}
+
+.app-shell .stat-dark > small,
+.app-shell .stat-dark > span,
+.app-shell .stat-dark > strong {
+  color: #fff;
+}
+
+.app-shell .primary-button,
+.app-shell .button-primary,
+.app-shell .feature-button--primary {
+  border-color: #2451dc;
+  background: #2451dc;
+}
+
+.app-shell .primary-button:hover:not(:disabled),
+.app-shell .button-primary:hover:not(:disabled),
+.app-shell .feature-button--primary:hover:not(:disabled) {
+  border-color: #193fc0;
+  background: #193fc0;
+}
+
+.app-shell .secondary-button,
+.app-shell .feature-button {
+  color: #26375f;
+  border-color: #dce5f7;
+  background: #fff;
+}
+
+.app-shell .secondary-button:hover,
+.app-shell .feature-button:hover:not(:disabled) {
+  border-color: #aebff0;
+  background: #f5f7fd;
+}
+
+.app-shell .toolbar input,
+.app-shell .toolbar select,
+.app-shell .account-form input,
+.app-shell .account-form select,
+.app-shell .account-form textarea,
+.app-shell .feature-input,
+.app-shell .feature-select,
+.app-shell .feature-textarea,
+.app-shell .weekly-report-controls input,
+.app-shell .payment-entry-form select {
+  color: #17254b;
+  border-color: #d6e0f7;
+  background: #f6f8fe;
+}
+
+.app-shell .toolbar input:focus,
+.app-shell .toolbar select:focus,
+.app-shell .account-form input:focus,
+.app-shell .account-form select:focus,
+.app-shell .account-form textarea:focus,
+.app-shell .feature-input:focus,
+.app-shell .feature-select:focus,
+.app-shell .feature-textarea:focus {
+  border-color: #6685ed;
+  outline: 3px solid rgb(36 81 220 / 12%);
+}
+
+.app-shell thead,
+.app-shell .technical-admin-table thead {
+  background: #f5f7fd;
+}
+
+.app-shell th {
+  color: #7182a8;
+}
+
+.app-shell td {
+  border-color: #edf1fa;
+}
+
+.app-shell tbody tr:hover {
+  background: #f8faff;
+}
+
+.app-shell .feature-pill {
+  color: #2451dc;
+  background: #eaf0ff;
+}
+
+.app-shell .sidebar-logout-button {
+  border-color: #dce5f7;
+  color: #26375f;
+  background: #fff;
+}
+
+.app-shell .sidebar-logout-button:hover {
+  border-color: #aebff0;
+  color: #2451dc;
+  background: #f5f7fd;
+}
+
+.app-shell[data-theme='dark'] {
+  --green: #7f9cff;
+  --green-dark: #9db3ff;
+  --green-soft: #202e54;
+  --ink: #e7edff;
+  --muted: #a5b2d4;
+  --border: #2b3858;
+  --surface: #18223b;
+  --page: #10182b;
+  color: var(--ink);
+  background: var(--page);
+}
+
+.app-shell[data-theme='dark'] .main-area {
+  background: var(--page);
+}
+
+.app-shell[data-theme='dark'] .sidebar,
+.app-shell[data-theme='dark'] .topbar {
+  border-color: #293653;
+  background: #141e34;
+}
+
+.app-shell[data-theme='dark'] .sidebar-brand-icon,
+.app-shell[data-theme='dark'] .sidebar-user .avatar {
+  color: #fff;
+  background: #315bdc;
+}
+
+.app-shell[data-theme='dark'] .sidebar-brand-text strong span,
+.app-shell[data-theme='dark'] .sidebar-nav-item.active,
+.app-shell[data-theme='dark'] .sidebar-nav-item.active svg,
+.app-shell[data-theme='dark'] .eyebrow,
+.app-shell[data-theme='dark'] .link-button {
+  color: #9db3ff;
+}
+
+.app-shell[data-theme='dark'] .technical-admin-group-card,
+.app-shell[data-theme='dark'] .sidebar-nav-item.active {
+  background: #202e54;
+}
+
+.app-shell[data-theme='dark'] .technical-admin-group-card strong,
+.app-shell[data-theme='dark'] .topbar-identity,
+.app-shell[data-theme='dark'] .profile-button,
+.app-shell[data-theme='dark'] .breadcrumb b,
+.app-shell[data-theme='dark'] .page-header h1,
+.app-shell[data-theme='dark'] .card-heading h2,
+.app-shell[data-theme='dark'] .account-card h2,
+.app-shell[data-theme='dark'] .report-card h2,
+.app-shell[data-theme='dark'] .feature-page__header h1,
+.app-shell[data-theme='dark'] .meeting-details h2 {
+  color: #e7edff;
+}
+
+.app-shell[data-theme='dark'] .sidebar-section-title,
+.app-shell[data-theme='dark'] .breadcrumb,
+.app-shell[data-theme='dark'] .sidebar-user-copy small,
+.app-shell[data-theme='dark'] .page-header p,
+.app-shell[data-theme='dark'] .feature-page__header p,
+.app-shell[data-theme='dark'] .card-heading p,
+.app-shell[data-theme='dark'] .feature-muted,
+.app-shell[data-theme='dark'] footer {
+  color: #a5b2d4;
+}
+
+.app-shell[data-theme='dark'] .sidebar-nav-item {
+  color: #a5b2d4;
+}
+
+.app-shell[data-theme='dark'] .sidebar-nav-item:hover:not(.active),
+.app-shell[data-theme='dark'] .profile-button:hover,
+.app-shell[data-theme='dark'] .theme-toggle:hover {
+  color: #c0ceff;
+  background: #1d2a47;
+}
+
+.app-shell[data-theme='dark'] .content-card,
+.app-shell[data-theme='dark'] .stat-card,
+.app-shell[data-theme='dark'] .report-card,
+.app-shell[data-theme='dark'] .approval-card,
+.app-shell[data-theme='dark'] .account-card,
+.app-shell[data-theme='dark'] .feature-card,
+.app-shell[data-theme='dark'] .feature-table-wrap,
+.app-shell[data-theme='dark'] .technical-admin-table-wrap,
+.app-shell[data-theme='dark'] .technical-admin-summary,
+.app-shell[data-theme='dark'] .technical-admin-empty,
+.app-shell[data-theme='dark'] .technical-admin-confirmation {
+  border-color: #2b3858;
+  background: #18223b;
+  box-shadow: 0 8px 28px rgb(0 0 0 / 13%);
+}
+
+.app-shell[data-theme='dark'] .stat-dark {
+  border-color: #315bdc;
+  background: #2448b6;
+}
+
+.app-shell[data-theme='dark'] .stat-dark > small,
+.app-shell[data-theme='dark'] .stat-dark > span,
+.app-shell[data-theme='dark'] .stat-dark > strong {
+  color: #fff;
+}
+
+.app-shell[data-theme='dark'] .primary-button,
+.app-shell[data-theme='dark'] .button-primary,
+.app-shell[data-theme='dark'] .feature-button--primary {
+  border-color: #315bdc;
+  background: #315bdc;
+}
+
+.app-shell[data-theme='dark'] .secondary-button,
+.app-shell[data-theme='dark'] .feature-button,
+.app-shell[data-theme='dark'] .sidebar-logout-button {
+  color: #dce5ff;
+  border-color: #344363;
+  background: #18223b;
+}
+
+.app-shell[data-theme='dark'] .secondary-button:hover,
+.app-shell[data-theme='dark'] .feature-button:hover:not(:disabled),
+.app-shell[data-theme='dark'] .sidebar-logout-button:hover {
+  border-color: #516db8;
+  background: #202e4d;
+}
+
+.app-shell[data-theme='dark'] .toolbar input,
+.app-shell[data-theme='dark'] .toolbar select,
+.app-shell[data-theme='dark'] .account-form input,
+.app-shell[data-theme='dark'] .account-form select,
+.app-shell[data-theme='dark'] .account-form textarea,
+.app-shell[data-theme='dark'] .feature-input,
+.app-shell[data-theme='dark'] .feature-select,
+.app-shell[data-theme='dark'] .feature-textarea,
+.app-shell[data-theme='dark'] .weekly-report-controls input,
+.app-shell[data-theme='dark'] .payment-entry-form select {
+  color: #e7edff;
+  border-color: #344363;
+  background: #111a2e;
+}
+
+.app-shell[data-theme='dark'] thead,
+.app-shell[data-theme='dark'] .technical-admin-table thead {
+  background: #202b45;
+}
+
+.app-shell[data-theme='dark'] td {
+  border-color: #2b3858;
+}
+
+.app-shell[data-theme='dark'] tbody tr:hover {
+  background: #202b45;
+}
+
+.app-shell[data-theme='dark'] .feature-pill {
+  color: #b4c5ff;
+  background: #202e54;
+}
+
+@media (max-width: 900px) {
+  .app-shell .page-content {
+    padding: 28px 24px 20px;
+  }
+}
+
+@media (max-width: 650px) {
+  .app-shell .page-content {
+    padding: 24px 16px 18px;
+  }
+
+  .app-shell .page-header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .app-shell .page-header-action,
+  .app-shell .page-header-action > button {
+    width: 100%;
+  }
+
+  .app-shell .stat-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .app-shell .card-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

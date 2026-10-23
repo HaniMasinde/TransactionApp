@@ -37,6 +37,7 @@ function getOverviewStats(overview, role) {
     return [
       {
         label: 'My contributions',
+        visual: 'sparkline',
         value: formatCurrency(
           contributions.total_contributions ?? 0,
         ),
@@ -44,6 +45,7 @@ function getOverviewStats(overview, role) {
       },
       {
         label: 'Collective contributions',
+        visual: 'donut',
         value: formatCurrency(
           contributions.collective_total_contributions ?? 0,
         ),
@@ -52,6 +54,7 @@ function getOverviewStats(overview, role) {
       },
       {
         label: 'My transactions',
+        visual: 'bars',
         value: Number(
           contributions.active_transaction_count ?? 0,
         ).toLocaleString('en-KE'),
@@ -70,6 +73,7 @@ function getOverviewStats(overview, role) {
   return [
     {
       label: 'Collective contributions',
+      visual: 'donut',
       value: formatCurrency(
         contributions.total_contributions ?? 0,
       ),
@@ -78,6 +82,7 @@ function getOverviewStats(overview, role) {
     },
     {
       label: 'Active transactions',
+      visual: 'bars',
       value: Number(
         contributions.active_transaction_count ?? 0,
       ).toLocaleString('en-KE'),
@@ -206,6 +211,20 @@ export default function DashboardPage({ user, onNavigate }) {
                 className={`stat-card${stat.dark ? ' stat-dark' : ''}`}
               >
                 <small>{stat.label}</small>
+                {stat.visual === 'sparkline' && (
+                  <svg className="stat-visual stat-visual-sparkline" viewBox="0 0 100 38" aria-hidden="true">
+                    <path d="M2 31 17 25 29 29 43 18 55 22 70 11 81 14 98 3" />
+                    <circle cx="98" cy="3" r="3" />
+                  </svg>
+                )}
+                {stat.visual === 'donut' && (
+                  <span className="stat-visual stat-visual-donut" aria-hidden="true" />
+                )}
+                {stat.visual === 'bars' && (
+                  <span className="stat-visual stat-visual-bars" aria-hidden="true">
+                    <i /><i /><i /><i />
+                  </span>
+                )}
                 <strong>{stat.value}</strong>
                 <span>{stat.detail}</span>
               </article>

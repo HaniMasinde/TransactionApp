@@ -115,6 +115,11 @@ export default function Sidebar({
         </span>
       </a>
 
+      <div className="technical-admin-group-card">
+        <span>YOUR GROUP</span>
+        <strong>Umoja Welfare</strong>
+      </div>
+
       <nav id="app-navigation" className="sidebar-navigation" aria-label="Main navigation">
         <p className="sidebar-section-title">MAIN MENU</p>
         <ul>
