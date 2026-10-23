@@ -14,7 +14,7 @@ const canViewDashboard = requireRole([
 ]);
 
 // GET /api/dashboard/overview
-// Members receive their own contribution summary.
+// Members receive their own summary and the aggregate collective total.
 // Treasurers and chairpersons receive the group overview.
 router.get("/overview", canViewDashboard, async (req, res, next) => {
   try {
@@ -46,7 +46,13 @@ router.get("/overview", canViewDashboard, async (req, res, next) => {
 
            MAX(paid_at) FILTER (
              WHERE status = 'active'
-           ) AS last_contribution_at
+           ) AS last_contribution_at,
+
+           (
+             SELECT COALESCE(SUM(amount), 0)
+             FROM transactions
+             WHERE status = 'active'
+           ) AS collective_total_contributions
 
          FROM transactions
          WHERE member_user_id = $1`,

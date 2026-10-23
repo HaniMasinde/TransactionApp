@@ -41,6 +41,13 @@ function getOverviewStats(overview, role) {
           contributions.total_contributions ?? 0,
         ),
         detail: 'Total recorded contributions',
+      },
+      {
+        label: 'Collective contributions',
+        value: formatCurrency(
+          contributions.collective_total_contributions ?? 0,
+        ),
+        detail: 'Total active group contributions',
         dark: true,
       },
       {
@@ -192,7 +199,7 @@ export default function DashboardPage({ user, onNavigate }) {
         </section>
       ) : (
         <>
-          <section className="stat-grid">
+          <section className={`stat-grid${role === 'member' ? ' stat-grid-member' : ''}`}>
             {stats.map((stat) => (
               <article
                 key={stat.label}
