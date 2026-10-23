@@ -14,7 +14,7 @@ const assignableRoles = [
 ]
 const staffingRequirements = [
   { role: 'chairperson', label: 'Chairpersons', minimum: 1 },
-  { role: 'treasurer', label: 'Treasurers', minimum: 1 },
+  { role: 'treasurer', label: 'Treasurers', minimum: 0, maximum: 2 },
 ]
 const roleOrder = ['technical_admin', 'chairperson', 'secretary', 'treasurer', 'member']
 
@@ -35,8 +35,16 @@ export default function TechnicalAdminPage({ user: currentUser }) {
       user => user.role === requirement.role,
     ).length
 
-    return { ...requirement, count, shortfall: Math.max(requirement.minimum - count, 0) }
+    return {
+      ...requirement,
+      count,
+      shortfall: Math.max(requirement.minimum - count, 0),
+      excess: requirement.maximum
+        ? Math.max(count - requirement.maximum, 0)
+        : 0,
+    }
   })
+  const treasurerCount = users.filter(user => user.role === 'treasurer').length
 
   const sortedUsers = users
     .map((user, index) => ({ user, index }))
@@ -159,15 +167,22 @@ export default function TechnicalAdminPage({ user: currentUser }) {
       </div>
 
       <section className="technical-admin-staffing" aria-label="Officer staffing targets">
-        <h2>Staffing targets</h2>
-        <p>Secretary is optional; the group can operate without one assigned.</p>
+        <h2>Officer assignments</h2>
+        <p>Treasurer is optional; assign up to two treasurers and at least one chairperson.</p>
         <ul>
           {staffing.map(item => (
             <li key={item.role}>
               <span>{item.label}</span>
-              <strong>{item.count} / {item.minimum}</strong>
+              <strong>
+                {item.maximum
+                  ? `${item.count} / ${item.maximum} max`
+                  : `${item.count} / ${item.minimum} min`}
+              </strong>
               {item.shortfall > 0 && (
                 <small>Assign {item.shortfall} more</small>
+              )}
+              {item.excess > 0 && (
+                <small>Remove {item.excess} to meet the limit</small>
               )}
             </li>
           ))}
@@ -284,7 +299,15 @@ export default function TechnicalAdminPage({ user: currentUser }) {
                         }
                       >
                         {assignableRoles.map(role => (
-                          <option key={role.value} value={role.value}>
+                          <option
+                            key={role.value}
+                            value={role.value}
+                            disabled={
+                              role.value === 'treasurer' &&
+                              user.role !== 'treasurer' &&
+                              treasurerCount >= 2
+                            }
+                          >
                             {role.label}
                           </option>
                         ))}

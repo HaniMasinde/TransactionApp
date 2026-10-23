@@ -19,8 +19,8 @@ const ASSIGNABLE_ROLES = [
 ];
 const MINIMUM_OFFICE_HOLDERS = {
   chairperson: 1,
-  treasurer: 1,
 };
+const MAX_TREASURERS = 2;
 
 router.use(requireAuth, requireRole("technical_admin"));
 
@@ -158,6 +158,25 @@ router.patch("/users/:id/role", async (req, res, next) => {
           role: target.role,
         },
       });
+    }
+
+    if (body.role === "treasurer") {
+      const treasurerCountResult = await client.query(
+        `SELECT COUNT(*)::int AS count
+         FROM users
+         WHERE role = 'treasurer'
+           AND account_status = 'approved'
+           AND deleted_at IS NULL`
+      );
+
+      if (treasurerCountResult.rows[0].count >= MAX_TREASURERS) {
+        await client.query("ROLLBACK");
+        return res.status(409).json({
+          success: false,
+          message:
+            "A group can have no more than two approved treasurers. Change an existing treasurer's role before assigning this role.",
+        });
+      }
     }
 
     const minimumForCurrentRole = MINIMUM_OFFICE_HOLDERS[target.role];
