@@ -2,7 +2,13 @@ import { useEffect, useState } from 'react'
 import PageHeader from '../components/PageHeader.jsx'
 import PasswordInput from '../components/PasswordInput.jsx'
 import { changePassword } from '../services/authService.js'
-import { getMyAccount, updateMyAccount } from '../services/memberService.js'
+import { getPaymentDestination, savePaymentDestination } from '../services/paymentDestinationService.js'
+import {
+  getMyAccount,
+  getMyDeletionRequest,
+  requestAccountDeletion,
+  updateMyAccount,
+} from '../services/memberService.js'
 import useAutoDismiss from '../hooks/useAutoDismiss.js'
 
 export default function AccountPage({ user, onAccountUpdated }) {
@@ -21,11 +27,28 @@ export default function AccountPage({ user, onAccountUpdated }) {
   const [passwordSaving, setPasswordSaving] = useState(false)
   const [passwordError, setPasswordError] = useState('')
   const [passwordSuccess, setPasswordSuccess] = useState('')
+  const [deletionRequest, setDeletionRequest] = useState(null)
+  const [deletionReason, setDeletionReason] = useState('')
+  const [deletionSaving, setDeletionSaving] = useState(false)
+  const [deletionError, setDeletionError] = useState('')
+  const [deletionSuccess, setDeletionSuccess] = useState('')
+  const isMember = user?.role === 'member'
+  const isTreasurer = user?.role === 'treasurer'
+  const [paymentNumber, setPaymentNumber] = useState('')
+  const [paymentNumberInputActive, setPaymentNumberInputActive] = useState(false)
+  const [paymentLoading, setPaymentLoading] = useState(isTreasurer)
+  const [paymentSaving, setPaymentSaving] = useState(false)
+  const [paymentError, setPaymentError] = useState('')
+  const [paymentSuccess, setPaymentSuccess] = useState('')
 
   useAutoDismiss(error, setError)
   useAutoDismiss(success, setSuccess)
   useAutoDismiss(passwordError, setPasswordError)
   useAutoDismiss(passwordSuccess, setPasswordSuccess)
+  useAutoDismiss(deletionError, setDeletionError)
+  useAutoDismiss(deletionSuccess, setDeletionSuccess)
+  useAutoDismiss(paymentError, setPaymentError)
+  useAutoDismiss(paymentSuccess, setPaymentSuccess)
 
   useEffect(() => {
     let active = true
@@ -50,6 +73,55 @@ export default function AccountPage({ user, onAccountUpdated }) {
     }
   }, [])
 
+  useEffect(() => {
+    if (!isTreasurer) return undefined
+    let active = true
+    getPaymentDestination()
+      .then(destination => {
+        if (active) setPaymentNumber(destination?.paymentNumber || '')
+      })
+      .catch(requestError => {
+        if (active) setPaymentError(requestError.message || 'Unable to load the group payment number.')
+      })
+      .finally(() => {
+        if (active) setPaymentLoading(false)
+      })
+    return () => { active = false }
+  }, [isTreasurer])
+
+  async function handlePaymentNumberSubmit(event) {
+    event.preventDefault()
+    setPaymentError('')
+    setPaymentSuccess('')
+    setPaymentSaving(true)
+    try {
+      const result = await savePaymentDestination(paymentNumber.trim())
+      setPaymentNumber(result.paymentDestination.paymentNumber)
+      setPaymentSuccess(result.message || 'Group payment number saved.')
+    } catch (requestError) {
+      setPaymentError(requestError.message || 'Unable to save the group payment number.')
+    } finally {
+      setPaymentSaving(false)
+    }
+  }
+
+  useEffect(() => {
+    if (!isMember) return undefined
+
+    let active = true
+    getMyDeletionRequest()
+      .then(result => {
+        if (active) setDeletionRequest(result)
+      })
+      .catch(requestError => {
+        if (active) setDeletionError(requestError.message || 'Unable to load deletion request status.')
+      })
+
+    return () => {
+      active = false
+    }
+  }, [isMember])
+
   async function handleSubmit(event) {
     event.preventDefault()
     setError('')
@@ -73,6 +145,24 @@ export default function AccountPage({ user, onAccountUpdated }) {
       setError(requestError.message || 'Unable to save your account settings.')
     } finally {
       setSaving(false)
+    }
+  }
+
+  async function handleDeletionRequest(event) {
+    event.preventDefault()
+    setDeletionError('')
+    setDeletionSuccess('')
+    setDeletionSaving(true)
+
+    try {
+      const result = await requestAccountDeletion(deletionReason.trim())
+      setDeletionRequest(result.deletionRequest)
+      setDeletionReason('')
+      setDeletionSuccess(result.message || 'Your deletion request was sent to the chairperson.')
+    } catch (requestError) {
+      setDeletionError(requestError.message || 'Unable to request account deletion.')
+    } finally {
+      setDeletionSaving(false)
     }
   }
 
@@ -207,6 +297,97 @@ export default function AccountPage({ user, onAccountUpdated }) {
           <p className="empty-state">Account details are unavailable.</p>
         ) : null}
       </section>
+
+      {isTreasurer && (
+        <section className="content-card account-card">
+          <div className="account-card-heading">
+            <div>
+              <h2>Group contribution payment number</h2>
+              <p>Members will see this number on their dashboard when making contributions.</p>
+            </div>
+          </div>
+          {paymentError && <p className="app-error" role="alert">{paymentError}</p>}
+          {paymentSuccess && <p className="account-success" role="status">{paymentSuccess}</p>}
+          {paymentLoading ? <p className="empty-state" aria-live="polite">Loading payment number…</p> : (
+            <form className="account-form" onSubmit={handlePaymentNumberSubmit}>
+              <label htmlFor="group-payment-number">
+                Paybill, Till, or payment number
+                <input
+                  id="group-payment-number"
+                  name="paymentNumber"
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  value={paymentNumber}
+                  onChange={event => setPaymentNumber(event.target.value)}
+                  onFocus={() => setPaymentNumberInputActive(true)}
+                  placeholder="Enter 5 to 20 digits"
+                  maxLength={24}
+                  required
+                />
+              </label>
+              <p className="password-change-hint">Enter digits only. Spaces and hyphens are removed when saved.</p>
+              <button className="primary-button" type="submit" disabled={paymentSaving || !paymentNumberInputActive || paymentNumber.replace(/[\s-]/g, '').length < 5}>
+                {paymentSaving ? 'Saving…' : 'Save payment number'}
+              </button>
+            </form>
+          )}
+        </section>
+      )}
+
+      {isMember && (
+        <section className="content-card account-card">
+          <div className="account-card-heading">
+            <div>
+              <h2>Request account deletion</h2>
+              <p>
+                A chairperson must review and approve this request. Your contribution
+                transaction records will be retained for group integrity.
+              </p>
+            </div>
+          </div>
+
+          {deletionError && <p className="app-error" role="alert">{deletionError}</p>}
+          {deletionSuccess && <p className="account-success" role="status">{deletionSuccess}</p>}
+
+          {deletionRequest ? (
+            <div role="status">
+              <p>
+                Your request is awaiting chairperson approval. Submitted reason:
+              </p>
+              <p><strong>{deletionRequest.reason}</strong></p>
+              {deletionRequest.requestedAt && (
+                <p className="password-change-hint">
+                  Requested {new Date(deletionRequest.requestedAt).toLocaleString('en-KE')}
+                </p>
+              )}
+            </div>
+          ) : (
+            <form className="account-form" onSubmit={handleDeletionRequest}>
+              <label htmlFor="account-deletion-reason">
+                Reason for your request
+                <textarea
+                  id="account-deletion-reason"
+                  name="reason"
+                  value={deletionReason}
+                  onChange={event => setDeletionReason(event.target.value)}
+                  minLength={5}
+                  maxLength={1000}
+                  rows={4}
+                  required
+                />
+              </label>
+              <button
+                className="secondary-button"
+                type="submit"
+                disabled={deletionSaving || deletionReason.trim().length < 5}
+              >
+                {deletionSaving ? 'Sending request…' : 'Request account deletion'}
+              </button>
+            </form>
+          )}
+        </section>
+      )}
 
       <section className="content-card account-card password-card">
         <div className="account-card-heading">

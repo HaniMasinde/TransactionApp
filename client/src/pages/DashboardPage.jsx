@@ -3,6 +3,8 @@ import PageHeader from '../components/PageHeader.jsx'
 import TransactionTable from '../components/TransactionTable.jsx'
 import { getTransactions } from '../services/transactionService.js'
 import { getDashboardOverview } from '../services/dashboardService.js'
+import { getPaymentDestination } from '../services/paymentDestinationService.js'
+import { getNextMeeting } from '../services/meetingsService.js'
 import { formatCurrency } from '../utils/formatCurrency.js'
 import useAutoDismiss from '../hooks/useAutoDismiss.js'
 
@@ -24,6 +26,28 @@ function getUserName(user) {
     user?.first_name ||
     'there'
   )
+}
+
+function unwrapMeeting(payload) {
+  return payload?.meeting ?? payload?.nextMeeting ?? payload?.next_meeting ?? payload
+}
+
+function meetingStart(meeting) {
+  const value = meeting?.startsAt ?? meeting?.starts_at ?? meeting?.meetingAt ??
+    meeting?.meeting_at ?? meeting?.meetingDate ?? meeting?.meeting_date ?? meeting?.date
+  const timestamp = value ? new Date(value).getTime() : NaN
+  return Number.isFinite(timestamp) ? timestamp : null
+}
+
+function formatCountdown(target, now) {
+  if (!target) return 'Not scheduled'
+  const remaining = target - now
+  if (remaining <= 0) return 'Meeting time reached'
+  const days = Math.floor(remaining / 86400000)
+  const hours = Math.floor((remaining % 86400000) / 3600000)
+  const minutes = Math.floor((remaining % 3600000) / 60000)
+  const seconds = Math.floor((remaining % 60000) / 1000)
+  return `${days}d ${String(hours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s`
 }
 
 function getOverviewStats(overview, role) {
@@ -104,11 +128,15 @@ export default function DashboardPage({ user, onNavigate }) {
     .replace(/\s+/g, '')
 
   const canRecordPayment = role === 'treasurer'
+  const showAccountMeetingSummary = ['member', 'chairperson', 'treasurer'].includes(role)
 
   const [overview, setOverview] = useState(null)
   const [transactions, setTransactions] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [paymentDestination, setPaymentDestination] = useState(null)
+  const [nextMeeting, setNextMeeting] = useState(null)
+  const [now, setNow] = useState(Date.now())
 
   useAutoDismiss(error, setError)
 
@@ -124,12 +152,14 @@ export default function DashboardPage({ user, onNavigate }) {
           getDashboardOverview(),
           getTransactions({ limit: 5, offset: 0 }),
         ]
+        if (showAccountMeetingSummary) requests.push(getPaymentDestination())
 
         const results = await Promise.allSettled(requests)
 
         if (!active) return
 
         const [overviewResult, transactionsResult] = results
+        const paymentResult = results[2]
 
         if (overviewResult.status === 'fulfilled') {
           setOverview(overviewResult.value)
@@ -150,6 +180,10 @@ export default function DashboardPage({ user, onNavigate }) {
               'Dashboard statistics loaded, but recent transactions could not be loaded.',
           )
         }
+
+        if (paymentResult?.status === 'fulfilled') {
+          setPaymentDestination(paymentResult.value)
+        }
       } catch (requestError) {
         if (active) {
           setError(
@@ -167,7 +201,31 @@ export default function DashboardPage({ user, onNavigate }) {
     return () => {
       active = false
     }
-  }, [])
+  }, [showAccountMeetingSummary])
+
+  useEffect(() => {
+    if (!showAccountMeetingSummary) return undefined
+
+    let active = true
+    const refreshMeeting = () => {
+      getNextMeeting()
+        .then(payload => {
+          if (active) setNextMeeting(unwrapMeeting(payload))
+        })
+        .catch(() => {
+          if (active) setNextMeeting(null)
+        })
+    }
+
+    refreshMeeting()
+    const meetingRefresh = window.setInterval(refreshMeeting, 30000)
+    const clock = window.setInterval(() => setNow(Date.now()), 1000)
+    return () => {
+      active = false
+      window.clearInterval(meetingRefresh)
+      window.clearInterval(clock)
+    }
+  }, [showAccountMeetingSummary])
 
   const stats = overview
     ? getOverviewStats(overview, role)
@@ -180,7 +238,18 @@ export default function DashboardPage({ user, onNavigate }) {
         title={`Good day, ${getUserName(user)}`}
         description="Here's what's happening with your group today."
         action={
-          canRecordPayment ? (
+          showAccountMeetingSummary ? (
+            <div className="member-dashboard-summary">
+              <div className="member-summary-item member-summary-account">
+                <span>TRANSACTION ACCOUNT</span>
+                <strong>{paymentDestination?.paymentNumber || 'Not added yet'}</strong>
+              </div>
+              <div className="member-summary-item member-summary-countdown" aria-live="off">
+                <span>NEXT MEETING</span>
+                <strong>{formatCountdown(meetingStart(nextMeeting), now)}</strong>
+              </div>
+            </div>
+          ) : canRecordPayment ? (
             <button
               type="button"
               className="primary-button"

@@ -17,3 +17,15 @@ export async function updateMyAccount(details) {
   })
   return result.member
 }
+
+export async function getMyDeletionRequest() {
+  const result = await apiRequest('/members/me/deletion-request')
+  return result.deletionRequest
+}
+
+export async function requestAccountDeletion(reason) {
+  return apiRequest('/members/me/deletion-request', {
+    method: 'POST',
+    body: JSON.stringify({ reason }),
+  })
+}

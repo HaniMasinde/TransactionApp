@@ -2,6 +2,7 @@
 const express = require("express");
 const { query, pool } = require("../config/database");
 const { requireAuth, requireRole } = require("../middleware/auth");
+const memberRepository = require("../repository/memberRepository");
 
 const router = express.Router();
 
@@ -156,6 +157,125 @@ router.patch("/members/:id/approve", (req, res, next) =>
 router.patch("/members/:id/reject", (req, res, next) =>
   decideMember(req, res, next, "rejected")
 );
+
+// GET /api/admin/member-deletion-requests
+router.get("/member-deletion-requests", async (req, res, next) => {
+  try {
+    const deletionRequests = await memberRepository.listPendingAccountDeletions();
+    return res.status(200).json({
+      success: true,
+      count: deletionRequests.length,
+      deletionRequests,
+    });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+// PATCH /api/admin/member-deletion-requests/:id
+router.patch("/member-deletion-requests/:id", async (req, res, next) => {
+  const { id } = req.params;
+  const { decision } = req.body || {};
+  const reason = typeof req.body?.reason === "string"
+    ? req.body.reason.trim()
+    : "";
+
+  if (
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)
+  ) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid deletion request ID.",
+    });
+  }
+
+  if (!["approved", "rejected"].includes(decision)) {
+    return res.status(400).json({
+      success: false,
+      message: "Decision must be approved or rejected.",
+    });
+  }
+
+  if (reason.length < 5 || reason.length > 1000) {
+    return res.status(400).json({
+      success: false,
+      message: "Provide a decision reason between 5 and 1000 characters.",
+    });
+  }
+
+  try {
+    const result = await memberRepository.decideAccountDeletion(
+      id,
+      req.user.id,
+      decision,
+      reason
+    );
+
+    if (!result) {
+      return res.status(404).json({
+        success: false,
+        message: "Pending member deletion request not found.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: decision === "approved"
+        ? "Member account deleted. Existing transaction records were retained."
+        : "Member deletion request declined.",
+      deletionRequest: result,
+    });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+// DELETE /api/admin/members/:id
+router.delete("/members/:id", async (req, res, next) => {
+  const { id } = req.params;
+  const reason = typeof req.body?.reason === "string"
+    ? req.body.reason.trim()
+    : "";
+
+  if (
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)
+  ) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid member ID.",
+    });
+  }
+
+  if (reason.length < 5 || reason.length > 1000) {
+    return res.status(400).json({
+      success: false,
+      message: "Provide a deletion reason between 5 and 1000 characters.",
+    });
+  }
+
+  try {
+    const result = await memberRepository.deleteMemberAccount(
+      id,
+      req.user.id,
+      reason
+    );
+
+    if (!result) {
+      return res.status(404).json({
+        success: false,
+        message: "Active member account not found.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Member account deleted. Other active members have been notified; transaction records were retained.",
+      member: result,
+    });
+  } catch (error) {
+    return next(error);
+  }
+});
 
 // GET /api/admin/audit-logs?limit=50&offset=0&action=transaction_created
 router.get(

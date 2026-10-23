@@ -2,6 +2,7 @@
 const express = require("express");
 const { query, getClient } = require("../config/database");
 const { requireAuth, requireRole } = require("../middleware/auth");
+const memberRepository = require("../repository/memberRepository");
 
 const router = express.Router();
 
@@ -207,5 +208,70 @@ router.patch("/me", requireAuth, async (req, res, next) => {
     if (client) client.release();
   }
 });
+
+router.get(
+  "/me/deletion-request",
+  requireAuth,
+  requireRole("member"),
+  async (req, res, next) => {
+    try {
+      const result = await query(
+        `SELECT id, request_reason AS reason, status,
+                requested_at AS "requestedAt"
+         FROM member_deletion_requests
+         WHERE member_user_id = $1
+           AND status = 'pending'
+         LIMIT 1`,
+        [req.user.id]
+      );
+
+      return res.status(200).json({
+        success: true,
+        deletionRequest: result.rows[0] || null,
+      });
+    } catch (error) {
+      return next(error);
+    }
+  }
+);
+
+router.post(
+  "/me/deletion-request",
+  requireAuth,
+  requireRole("member"),
+  async (req, res, next) => {
+    const reason =
+      typeof req.body?.reason === "string" ? req.body.reason.trim() : "";
+
+    if (reason.length < 5 || reason.length > 1000) {
+      return res.status(400).json({
+        success: false,
+        message: "Provide a deletion reason between 5 and 1000 characters.",
+      });
+    }
+
+    try {
+      const deletionRequest = await memberRepository.requestAccountDeletion(
+        req.user.id,
+        reason
+      );
+
+      if (!deletionRequest) {
+        return res.status(409).json({
+          success: false,
+          message: "Only an active member can request account deletion.",
+        });
+      }
+
+      return res.status(202).json({
+        success: true,
+        message: "Your deletion request has been sent to the chairperson for approval.",
+        deletionRequest,
+      });
+    } catch (error) {
+      return next(error);
+    }
+  }
+);
 
 module.exports = router;

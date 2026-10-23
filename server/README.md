@@ -15,7 +15,7 @@ npm run db:migrate
 npm run dev
 ```
 
-The API listens on `http://localhost:4000`. Client Vite proxies `/api` to this server. Database schema setup is idempotent and also runs when the server starts.
+The API listens on `http://localhost:4000`. Client Vite proxies `/api` to this server. Run `npm run db:migrate` after deploying new migrations; the API server does not apply migrations automatically.
 
 ## Provision the two administrator accounts
 
@@ -46,13 +46,20 @@ The initial Technical Administrator is provisioned separately with `npm run seed
 
 The SRS leaves chairperson access to transaction history undecided, so this API denies group transaction and contribution-total access to chairpersons by default.
 
+## Member account deletion
+
+Members can submit a deletion request with a reason from Account settings. Only the chairperson can approve or decline it, and a reason for the decision is required and recorded in the audit log. On approval, the member profile is anonymized, active sessions are revoked, and all original transaction rows and their member references are retained. Other active, approved accounts receive a dashboard notification containing the deletion action and chairperson's reason. Office holders and Technical Administrators cannot request deletion of their accounts.
+
 Transactions are append-only. Corrections create a separate negative transaction with its own unique M-Pesa code. Unmatched payment names can later be linked to an active member without changing the original payment details. Treasurers' payment actions and chairpersons' account decisions are audit logged. Passwords are bcrypt hashed, sessions expire and can be revoked, and deactivated accounts lose existing sessions.
 
 ## Main routes
 
 - Public: `GET /api/health`, `POST /api/auth/register`, `POST /api/auth/login`
+- Member: `GET/POST /api/members/me/deletion-request`
+- Chairperson: `GET /api/admin/member-deletion-requests`, `PATCH /api/admin/member-deletion-requests/:id`
 - Authenticated: `GET /api/auth/me`, `POST /api/auth/logout`, `GET /api/dashboard`, `GET /api/me/transactions`, `GET/PATCH /api/me/profile`, `DELETE /api/me`
 - Treasurer: `GET/POST /api/transactions`, `POST /api/transactions/:id/corrections`, `PATCH /api/transactions/:id/member-link`, `GET /api/reports/summary`, `GET /api/audit`, `POST /api/admin/roles/transfer-treasurer`
+- Treasurer: `GET/PUT /api/payment-destination` to view or update the group contribution payment number. Approved members can read it with `GET /api/payment-destination`.
 - Treasurer and chairperson: `GET /api/members`
 - Chairperson: `GET /api/admin/registrations/pending`, `POST /api/admin/registrations/:id/decision`, `PATCH /api/admin/members/:id/status`, `POST /api/admin/roles/transfer-chairperson`
 

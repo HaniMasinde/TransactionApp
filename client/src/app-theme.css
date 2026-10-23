@@ -505,6 +505,107 @@
   color: #a3a7c3;
 }
 
+.app-shell[data-theme='dark'] .deletion-request-reason {
+  border-color: #344363;
+  border-left-color: #7895ff;
+  background: #202b45;
+}
+
+.app-shell[data-theme='dark'] .deletion-request-reason > span,
+.app-shell[data-theme='dark'] .deletion-confirmation-reason > span {
+  color: #aebce0;
+}
+
+.app-shell[data-theme='dark'] .deletion-request-reason > p,
+.app-shell[data-theme='dark'] .deletion-confirmation-reason > p,
+.app-shell[data-theme='dark'] .deletion-decision-field label {
+  color: #e1e8ff;
+}
+
+.app-shell[data-theme='dark'] .deletion-decision-textarea {
+  border-color: #405174;
+  color: #e7edff;
+  background: #111a2e;
+}
+
+.app-shell[data-theme='dark'] .deletion-decision-textarea::placeholder,
+.app-shell[data-theme='dark'] .deletion-decision-field-footer {
+  color: #99a8ca;
+}
+
+.app-shell[data-theme='dark'] .deletion-decision-textarea:focus {
+  border-color: #7895ff;
+  box-shadow: 0 0 0 4px rgb(120 149 255 / 18%);
+}
+
+.app-shell[data-theme='dark'] .deletion-confirmation-dialog {
+  border-color: #344363;
+  color: #e7edff;
+  background: #18223b;
+}
+
+.app-shell[data-theme='dark'] .deletion-confirmation-dialog h2 {
+  color: #f0f3ff;
+}
+
+.app-shell[data-theme='dark'] .deletion-confirmation-dialog > p {
+  color: #b8c4e2;
+}
+
+.app-shell[data-theme='dark'] .deletion-confirmation-reason {
+  border-color: #344363;
+  background: #111a2e;
+}
+
+.app-shell[data-theme='dark'] .deletion-confirm-button {
+  border-color: #d0443a;
+  background: #b42318;
+}
+
+.app-shell[data-theme='dark'] .member-payment-destination {
+  border-color: #31533b;
+  background:
+    radial-gradient(ellipse at 100% 0, rgb(38 83 54 / 34%), transparent 42%),
+    #18223b;
+}
+
+.app-shell[data-theme='dark'] .member-payment-heading h2 {
+  color: #e7edff;
+}
+
+.app-shell[data-theme='dark'] .member-payment-heading p {
+  color: #a5b2d4;
+}
+
+.app-shell[data-theme='dark'] .member-payment-eyebrow {
+  color: #8bc9a0;
+}
+
+.app-shell[data-theme='dark'] .member-payment-badge {
+  border-color: #31533b;
+  color: #b9e2c5;
+  background: #20382a;
+}
+
+.app-shell[data-theme='dark'] .member-payment-number {
+  border-color: #365843;
+  background: rgb(12 25 17 / 48%);
+}
+
+.app-shell[data-theme='dark'] .member-payment-number > span {
+  color: #a5b2a9;
+}
+
+.app-shell[data-theme='dark'] .member-payment-number > strong {
+  color: #a6ddb6;
+}
+
+.app-shell[data-theme='dark'] .member-payment-empty {
+  border-color: #3c5744;
+  color: #bfcec3;
+  background: rgb(12 25 17 / 35%);
+}
+
 @media (max-width: 900px) {
   .app-shell .page-content {
     padding: 28px 24px 20px;
@@ -534,5 +635,23 @@
   .app-shell .card-heading {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .deletion-confirmation-dialog {
+    padding: 20px;
+  }
+
+  .deletion-confirmation-actions {
+    flex-direction: column-reverse;
+  }
+
+  .deletion-confirmation-actions > button {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  .deletion-decision-field-footer {
+    flex-direction: column;
+    gap: 2px;
   }
 }

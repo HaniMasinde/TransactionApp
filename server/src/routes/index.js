@@ -17,6 +17,7 @@ const auditRoutes = require("./auditRoutes");
 const groupMembershipRoutes = require("./groupMembershipRoutes");
 const settingsRoutes = require("./settingsRoutes");
 const technicalAdminRoutes = require("./technicalAdminRoutes");
+const paymentDestinationRoutes = require("./paymentDestinationRoutes");
 
 router.use("/auth", authRoutes);
 router.use("/admin", adminRoutes);
@@ -33,5 +34,6 @@ router.use("/audit", auditRoutes);
 router.use("/group-memberships", groupMembershipRoutes);
 router.use("/settings", settingsRoutes);
 router.use("/technical-admin", technicalAdminRoutes);
+router.use("/payment-destination", paymentDestinationRoutes);
 
 module.exports = router;

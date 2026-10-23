@@ -1,5 +1,6 @@
 
 const db = require("../config/database");
+const crypto = require("node:crypto");
 
 const OFFICE_ROLES = ["treasurer", "chairperson", "secretary"];
 const MEMBER_STATUSES = ["approved", "disabled"];
@@ -282,84 +283,290 @@ async function transferRole(role, actorId, targetId) {
   });
 }
 
-/**
- * Anonymize a member without deleting the user row or breaking historical
- * transaction/audit foreign keys. Office holders must transfer their role
- * before account anonymization.
- */
-async function anonymizeAccount(id, actorId, newHash) {
-  if (!newHash || typeof newHash !== "string") {
-    throw new Error("A replacement password hash is required.");
-  }
-
+async function requestAccountDeletion(memberId, reason) {
   return withTransaction(async (client) => {
-    const existingResult = await client.query(
-      `SELECT id, full_name, role, account_status
+    const memberResult = await client.query(
+      `SELECT id, full_name
        FROM users
        WHERE id = $1
+         AND role = 'member'
+         AND account_status = 'approved'
          AND deleted_at IS NULL
        FOR UPDATE`,
-      [id]
+      [memberId]
+    );
+    const member = memberResult.rows[0];
+    if (!member) return null;
+
+    const pendingResult = await client.query(
+      `SELECT id, request_reason AS reason, status,
+              requested_at AS "requestedAt"
+       FROM member_deletion_requests
+       WHERE member_user_id = $1 AND status = 'pending'`,
+      [memberId]
+    );
+    if (pendingResult.rows[0]) return pendingResult.rows[0];
+
+    const requestResult = await client.query(
+      `INSERT INTO member_deletion_requests (member_user_id, request_reason)
+       VALUES ($1, $2)
+       RETURNING id, request_reason AS reason, status,
+                 requested_at AS "requestedAt"`,
+      [memberId, reason]
+    );
+    const deletionRequest = requestResult.rows[0];
+
+    await client.query(
+      `INSERT INTO audit_logs (
+         actor_user_id, action, target_type, target_id, new_values
+       )
+       VALUES ($1, 'member.deletion_requested', 'user', $2, $3::jsonb)`,
+      [
+        memberId,
+        memberId,
+        JSON.stringify({
+          requestId: deletionRequest.id,
+          reason,
+          status: "pending",
+        }),
+      ]
+    );
+    await client.query(
+      `INSERT INTO notifications (
+         recipient_user_id, event_type, title, message
+       )
+       SELECT id, 'member_deletion_requested',
+              'Member account deletion requested', $1
+       FROM users
+       WHERE role = 'chairperson'
+         AND account_status = 'approved'
+         AND deleted_at IS NULL`,
+      [`${member.full_name} requested account deletion. Reason: ${reason}`]
     );
 
-    const existing = existingResult.rows[0];
-    if (!existing) return null;
+    return deletionRequest;
+  });
+}
 
-    if (OFFICE_ROLES.includes(existing.role)) {
-      throw new Error(
-        "Transfer the office role before anonymizing this account."
+async function listPendingAccountDeletions() {
+  const result = await db.query(
+    `SELECT request.id, request.member_user_id AS "memberId",
+            account.full_name AS "memberName",
+            request.request_reason AS "requestReason",
+            request.requested_at AS "requestedAt"
+     FROM member_deletion_requests AS request
+     JOIN users AS account ON account.id = request.member_user_id
+     WHERE request.status = 'pending'
+       AND account.role = 'member'
+       AND account.account_status = 'approved'
+       AND account.deleted_at IS NULL
+     ORDER BY request.requested_at ASC`
+  );
+  return result.rows;
+}
+
+async function anonymizeMember(client, {
+  memberId,
+  memberName,
+  previousStatus,
+  actorId,
+  reason,
+  requestId = null,
+  requestReason = null,
+}) {
+  await client.query(
+    `DELETE FROM sessions
+     WHERE sess->'user'->>'id' = $1`,
+    [String(memberId)]
+  );
+  await client.query(
+    `UPDATE users
+     SET full_name = 'Deleted member',
+         phone = NULL,
+         normalized_phone = NULL,
+         recovery_email = NULL,
+         normalized_email = NULL,
+         password_hash = $2,
+         account_status = 'anonymized',
+         deleted_at = NOW(),
+         updated_at = NOW()
+     WHERE id = $1`,
+    [memberId, crypto.randomBytes(32).toString("hex")]
+  );
+  await writeAudit(
+    client,
+    actorId,
+    "member.deletion_approved",
+    "user",
+    memberId,
+    {
+      status: previousStatus,
+      ...(requestReason ? { requestReason } : {}),
+    },
+    {
+      status: "anonymized",
+      ...(requestId ? { requestId } : {}),
+      reason,
+    }
+  );
+  await client.query(
+    `INSERT INTO notifications (
+       recipient_user_id, event_type, title, message
+     )
+     SELECT id, 'member_deletion_approved',
+            'Member account deleted', $1
+     FROM users
+     WHERE id <> $2
+       AND role = 'member'
+       AND account_status = 'approved'
+       AND deleted_at IS NULL`,
+    [
+      `${memberName}'s account was deleted by the chairperson. Reason: ${reason}`,
+      memberId,
+    ]
+  );
+}
+
+async function deleteMemberAccount(memberId, actorId, reason) {
+  return withTransaction(async (client) => {
+    const memberResult = await client.query(
+      `SELECT id, full_name, account_status
+       FROM users
+       WHERE id = $1
+         AND role = 'member'
+         AND account_status = 'approved'
+         AND deleted_at IS NULL
+       FOR UPDATE`,
+      [memberId]
+    );
+    const member = memberResult.rows[0];
+    if (!member) return null;
+
+    const requestResult = await client.query(
+      `SELECT id, request_reason
+       FROM member_deletion_requests
+       WHERE member_user_id = $1
+         AND status = 'pending'
+       FOR UPDATE`,
+      [memberId]
+    );
+    const pendingRequest = requestResult.rows[0];
+    if (pendingRequest) {
+      await client.query(
+        `UPDATE member_deletion_requests
+         SET status = 'approved',
+             reviewed_by = $1,
+             review_reason = $2,
+             reviewed_at = NOW()
+         WHERE id = $3`,
+        [actorId, reason, pendingRequest.id]
       );
     }
 
-    await client.query(
-      `UPDATE transactions
-       SET member_user_id = NULL,
-           entered_member_name = 'Former member',
-           updated_at = NOW()
-       WHERE member_user_id = $1`,
-      [id]
-    );
-
-    // Keep created_by and updated_by intact: they are required historical
-    // references and must not be nulled during anonymization.
-    await client.query(
-      `DELETE FROM sessions
-       WHERE sess->'user'->>'id' = $1`,
-      [String(id)]
-    );
-
-    const updatedResult = await client.query(
-      `UPDATE users
-       SET full_name = 'Deleted member',
-           phone = $2,
-           normalized_phone = NULL,
-           recovery_email = NULL,
-           normalized_email = NULL,
-           password_hash = $3,
-           account_status = 'anonymized',
-           deleted_at = NOW(),
-           updated_at = NOW()
-       WHERE id = $1
-       RETURNING id, full_name AS name, role,
-                 account_status AS status, deleted_at AS "deletedAt"`,
-      [id, `deleted-${id}`, newHash]
-    );
-
-    await writeAudit(
-      client,
+    await anonymizeMember(client, {
+      memberId: member.id,
+      memberName: member.full_name,
+      previousStatus: member.account_status,
       actorId,
-      "account.anonymized",
-      "user",
-      id,
-      {
-        name: existing.full_name,
-        role: existing.role,
-        status: existing.account_status,
-      },
-      { status: "anonymized" }
+      reason,
+      requestId: pendingRequest?.id || null,
+      requestReason: pendingRequest?.request_reason || null,
+    });
+
+    return {
+      memberId: member.id,
+      memberName: member.full_name,
+      status: "anonymized",
+    };
+  });
+}
+
+async function decideAccountDeletion(requestId, actorId, decision, reason) {
+  if (!["approved", "rejected"].includes(decision)) {
+    throw new Error("Decision must be 'approved' or 'rejected'.");
+  }
+
+  return withTransaction(async (client) => {
+    const requestResult = await client.query(
+      `SELECT request.id, request.member_user_id, request.request_reason,
+              account.full_name, account.role, account.account_status
+       FROM member_deletion_requests AS request
+       JOIN users AS account ON account.id = request.member_user_id
+       WHERE request.id = $1
+         AND request.status = 'pending'
+         AND account.deleted_at IS NULL
+       FOR UPDATE OF request, account`,
+      [requestId]
+    );
+    const request = requestResult.rows[0];
+    if (!request || request.role !== "member" || request.account_status !== "approved") {
+      return null;
+    }
+
+    await client.query(
+      `UPDATE member_deletion_requests
+       SET status = $1,
+           reviewed_by = $2,
+           review_reason = $3,
+           reviewed_at = NOW()
+       WHERE id = $4`,
+      [decision, actorId, reason, requestId]
     );
 
-    return updatedResult.rows[0];
+    const notificationType = decision === "approved"
+      ? "member_deletion_approved"
+      : "member_deletion_rejected";
+    const status = decision === "approved" ? "anonymized" : "approved";
+
+    if (decision === "approved") {
+      await anonymizeMember(client, {
+        memberId: request.member_user_id,
+        memberName: request.full_name,
+        previousStatus: request.account_status,
+        actorId,
+        reason,
+        requestId,
+        requestReason: request.request_reason,
+      });
+    } else {
+      await writeAudit(
+        client,
+        actorId,
+        "member.deletion_rejected",
+        "user",
+        request.member_user_id,
+        {
+          status: request.account_status,
+          requestReason: request.request_reason,
+        },
+        {
+          status,
+          requestId,
+          reason,
+        }
+      );
+      await client.query(
+        `INSERT INTO notifications (
+           recipient_user_id, event_type, title, message
+         )
+         VALUES (
+           $1, 'member_deletion_rejected',
+           'Account deletion request declined', $2
+         )`,
+        [
+          request.member_user_id,
+          `Your account deletion request was declined. Reason: ${reason}`,
+        ]
+      );
+    }
+
+    return {
+      requestId,
+      memberId: request.member_user_id,
+      memberName: request.full_name,
+      status: decision,
+      reason,
+    };
   });
 }
 
@@ -369,5 +576,8 @@ module.exports = {
   decideRegistration,
   setMemberStatus,
   transferRole,
-  anonymizeAccount,
+  requestAccountDeletion,
+  listPendingAccountDeletions,
+  deleteMemberAccount,
+  decideAccountDeletion,
 };
