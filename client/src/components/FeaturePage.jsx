@@ -4,10 +4,11 @@ export default function FeaturePage({
   title,
   description,
   actions,
+  className = '',
   children,
 }) {
   return (
-    <section className="feature-page">
+    <section className={`feature-page${className ? ` ${className}` : ''}`}>
       <header className="feature-page__header">
         <div>
           <h1>{title}</h1>

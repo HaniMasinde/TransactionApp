@@ -114,6 +114,7 @@ export default function NotificationsPage() {
   return (
     <FeaturePage
       title="Notifications"
+      className="notifications-page"
       description={`${unreadCount} unread notification${unreadCount === 1 ? '' : 's'}.`}
       actions={
         <button
@@ -146,7 +147,7 @@ export default function NotificationsPage() {
       ) : (
         items.map((item, index) => (
           <article
-            className="feature-card"
+            className="feature-card notification-card"
             key={idOf(item) ?? index}
             style={{
               borderLeft: `4px solid ${
@@ -163,7 +164,7 @@ export default function NotificationsPage() {
               }}
             >
               <div>
-                <h2 style={{ fontSize: '1rem', margin: '0 0 .4rem' }}>
+                <h2 style={{ margin: '0 0 .4rem' }}>
                   {titleOf(item)}{' '}
                   {!isRead(item) && (
                     <span className="feature-pill">Unread</span>

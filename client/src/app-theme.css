@@ -284,6 +284,36 @@
   background: #eaf0ff;
 }
 
+.app-shell .notifications-page .feature-page__header p {
+  font-size: 13px;
+}
+
+.app-shell .notification-card h2 {
+  font-size: 15px;
+}
+
+.app-shell .notification-card p {
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.app-shell .notification-card .feature-muted {
+  font-size: 11px;
+}
+
+.app-shell .notification-card .feature-button {
+  min-height: 32px;
+  padding: 0.45rem 0.65rem;
+  border-radius: 8px;
+  font-size: 11px;
+  gap: 0.3rem;
+}
+
+.app-shell .notification-card .feature-button svg {
+  width: 13px;
+  height: 13px;
+}
+
 .app-shell .sidebar-logout-button {
   border-color: #dce5f7;
   color: #26375f;
