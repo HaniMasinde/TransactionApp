@@ -80,8 +80,27 @@ function validateLogin(body) {
     return "Enter a valid phone number";
   }
 
-  if (typeof password !== "string" || password.length < 1 || password.length > 15) {
-    return "Password is required and must not exceed 128 characters";
+  if (typeof password !== "string" || password.length < 1 || password.length > 40) {
+    return "Password is required and must not exceed 40 characters";
+  }
+
+  return null;
+}
+
+function validateChangePassword(body) {
+  const unknown = rejectUnknownFields(body, ["currentPassword", "newPassword"]);
+  if (unknown) return unknown;
+
+  if (typeof body.currentPassword !== "string" || body.currentPassword.length < 1 || body.currentPassword.length > 128) {
+    return "Enter your current password.";
+  }
+
+  const password = body.newPassword;
+  if (typeof password !== "string" || password.length < 8 || password.length > 40) {
+    return "New password must be between 8 and 40 characters.";
+  }
+  if (!/[A-Za-z]/.test(password) || !/\d/.test(password) || !/[^A-Za-z0-9\s]/.test(password)) {
+    return "New password must include a letter, a number, and a special character.";
   }
 
   return null;
@@ -90,5 +109,6 @@ function validateLogin(body) {
 module.exports = {
   validateRegistration,
   validateLogin,
+  validateChangePassword,
   rejectUnknownFields
 };

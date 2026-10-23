@@ -67,4 +67,20 @@ async function login(req, res, next) {
   }
 }
 
-module.exports = { register, login };
+async function changePassword(req, res, next) {
+  try {
+    await authService.changePassword(req.session.user.id, {
+      currentPassword: req.body.currentPassword,
+      newPassword: req.body.newPassword,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Password changed successfully.",
+    });
+  } catch (error) {
+    return next(error);
+  }
+}
+
+module.exports = { register, login, changePassword };

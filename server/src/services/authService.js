@@ -99,4 +99,58 @@ async function login({ phone, password }) {
   };
 }
 
-module.exports = { register, login };
+async function changePassword(userId, { currentPassword, newPassword }) {
+  let client;
+
+  try {
+    client = await getClient();
+    await client.query("BEGIN");
+
+    const result = await client.query(
+      `SELECT password_hash
+       FROM users
+       WHERE id = $1 AND deleted_at IS NULL
+       FOR UPDATE`,
+      [userId]
+    );
+    const user = result.rows[0];
+
+    if (!user) {
+      const error = authError("User account not found.", 404);
+      throw error;
+    }
+
+    if (!(await bcrypt.compare(currentPassword, user.password_hash))) {
+      const error = authError("Your current password is incorrect.", 400);
+      throw error;
+    }
+
+    if (await bcrypt.compare(newPassword, user.password_hash)) {
+      const error = authError("Choose a password different from your current password.", 400);
+      throw error;
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 12);
+    await client.query(
+      `UPDATE users
+       SET password_hash = $1, updated_at = NOW()
+       WHERE id = $2`,
+      [passwordHash, userId]
+    );
+    await client.query(
+      `INSERT INTO audit_logs
+         (actor_user_id, action, target_type, target_id)
+       VALUES ($1, 'account_password_changed', 'user', $1)`,
+      [userId]
+    );
+
+    await client.query("COMMIT");
+  } catch (error) {
+    if (client) await client.query("ROLLBACK").catch(() => {});
+    throw error;
+  } finally {
+    if (client) client.release();
+  }
+}
+
+module.exports = { register, login, changePassword };

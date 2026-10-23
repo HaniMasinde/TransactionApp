@@ -16,6 +16,13 @@ export async function login(phone, password) {
   return result.user
 }
 
+export async function changePassword(currentPassword, newPassword) {
+  return apiRequest('/auth/password', {
+    method: 'PATCH',
+    body: JSON.stringify({ currentPassword, newPassword }),
+  })
+}
+
 export async function getCurrentUser() {
   const result = await apiRequest('/auth/me')
   return result.user

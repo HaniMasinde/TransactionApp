@@ -222,6 +222,11 @@
   background: #193fc0;
 }
 
+.app-shell .primary-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
 .app-shell .secondary-button,
 .app-shell .feature-button {
   color: #26375f;
@@ -312,6 +317,17 @@
 .app-shell .notification-card .feature-button svg {
   width: 13px;
   height: 13px;
+}
+
+.app-shell .password-card {
+  margin-top: 20px;
+}
+
+.app-shell .password-change-hint {
+  margin: -9px 0 0;
+  color: #6b7ca4;
+  font-size: 12px;
+  line-height: 1.5;
 }
 
 .app-shell .sidebar-logout-button {
@@ -483,6 +499,10 @@
 .app-shell[data-theme='dark'] .feature-pill {
   color: #b4c5ff;
   background: #202e54;
+}
+
+.app-shell[data-theme='dark'] .password-change-hint {
+  color: #a3a7c3;
 }
 
 @media (max-width: 900px) {
