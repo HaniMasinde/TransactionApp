@@ -54,7 +54,7 @@ Transactions are append-only. Corrections create a separate negative transaction
 
 ## Main routes
 
-- Public: `GET /api/health`, `POST /api/auth/register`, `POST /api/auth/login`
+- Public: `GET /api/health`, `POST /api/auth/register`, `POST /api/auth/login`, `POST /api/auth/forgot-password`, `POST /api/auth/reset-password`
 - Member: `GET/POST /api/members/me/deletion-request`
 - Chairperson: `GET /api/admin/member-deletion-requests`, `PATCH /api/admin/member-deletion-requests/:id`
 - Authenticated: `GET /api/auth/me`, `POST /api/auth/logout`, `GET /api/dashboard`, `GET /api/me/transactions`, `GET/PATCH /api/me/profile`, `DELETE /api/me`
@@ -62,5 +62,7 @@ Transactions are append-only. Corrections create a separate negative transaction
 - Treasurer: `GET/PUT /api/payment-destination` to view or update the group contribution payment number. Approved members can read it with `GET /api/payment-destination`.
 - Treasurer and chairperson: `GET /api/members`
 - Chairperson: `GET /api/admin/registrations/pending`, `POST /api/admin/registrations/:id/decision`, `PATCH /api/admin/members/:id/status`, `POST /api/admin/roles/transfer-chairperson`
+
+Password recovery requires the SMTP settings and `FRONTEND_URL` in the server environment. Apply migration `003_recovery_and_notifications.sql` with `npm run db:migrate` before deploying the recovery endpoints.
 
 Protected routes require `Authorization: Bearer <token>`. Use HTTPS in deployed environments and keep the JWT secret private.

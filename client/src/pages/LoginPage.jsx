@@ -5,7 +5,7 @@ import AuthLayout from '../components/AuthLayout.jsx'
 import PasswordInput from '../components/PasswordInput.jsx'
 import useAutoDismiss from '../hooks/useAutoDismiss.js'
 
-export default function LoginPage({ onLogin, onRegister, onHome }) {
+export default function LoginPage({ onLogin, onRegister, onForgotPassword, onHome }) {
   const [phone, setPhone] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -82,11 +82,21 @@ export default function LoginPage({ onLogin, onRegister, onHome }) {
           </button>
       </form>
 
+      <p className="auth-footnote auth-forgot-footnote">
+        <button
+          type="button"
+          className="link-button auth-forgot-link"
+          onClick={onForgotPassword}
+        >
+          Forgot your password?
+        </button>
+      </p>
+
       <p className="auth-footnote">
         Don't have an account?{' '}
         <button
           type="button"
-          className="link-button"
+          className="link-button auth-account-link"
           onClick={onRegister}
         >
           Create an account

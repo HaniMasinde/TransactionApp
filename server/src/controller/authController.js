@@ -1,6 +1,7 @@
 "use strict";
 
 const authService = require("../services/authService");
+const passwordRecoveryService = require("../services/passwordRecoveryService");
 
 function getRegistrationFields(body) {
   return {
@@ -83,4 +84,36 @@ async function changePassword(req, res, next) {
   }
 }
 
-module.exports = { register, login, changePassword };
+
+async function forgotPassword(req, res, next) {
+  try {
+    const email = req.body.email ?? req.body.recoveryEmail;
+
+    await passwordRecoveryService.requestPasswordReset(email);
+
+    return res.status(200).json({
+      success: true,
+      message: "If an account with that email exists, you will receive password reset instructions shortly.",
+    });
+  } catch (error) {
+    return next(error);
+  }
+}
+
+async function resetPassword(req, res, next) {
+  try {
+    await passwordRecoveryService.resetPassword(
+      req.body.token,
+      req.body.newPassword
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Password reset successfully. Please log in with your new password.",
+    });
+  } catch (error) {
+    return next(error);
+  }
+}
+
+module.exports = { register, login, changePassword, forgotPassword, resetPassword };

@@ -7,6 +7,8 @@ import ApprovalsPage from './pages/ApprovalsPage.jsx'
 import ReportsPage from './pages/ReportsPage.jsx'
 import AccountPage from './pages/AccountPage.jsx'
 import LoginPage from './pages/LoginPage.jsx'
+import ForgotPasswordPage from './pages/ForgotPasswordPage.jsx'
+import ResetPasswordPage from './pages/ResetPasswordPage.jsx'
 import { getCurrentUser, login, logout } from './services/authService.js'
 import './App.css'
 import './app-theme.css'
@@ -53,7 +55,11 @@ export default function App() {
   const [page, setPage] = useState('dashboard')
   const [checkingSession, setCheckingSession] = useState(true)
   const [appError, setAppError] = useState('')
-  const [authPage, setAuthPage] = useState('landing')
+  const [authPage, setAuthPage] = useState(() =>
+    window.location.pathname.replace(/\/$/, '') === '/reset-password'
+      ? 'reset-password'
+      : 'landing',
+  )
 
   useAutoDismiss(appError, setAppError)
 
@@ -117,6 +123,20 @@ export default function App() {
     }
   }
 
+  function showLogin() {
+    setAuthPage('login')
+    if (window.location.pathname.replace(/\/$/, '') === '/reset-password') {
+      window.history.replaceState({}, '', '/')
+    }
+  }
+
+  function showHome() {
+    setAuthPage('landing')
+    if (window.location.pathname.replace(/\/$/, '') === '/reset-password') {
+      window.history.replaceState({}, '', '/')
+    }
+  }
+
   if (checkingSession) {
     return (
       <main className="auth-loading" aria-live="polite">
@@ -145,10 +165,32 @@ export default function App() {
       )
     }
 
+    if (authPage === 'forgot-password') {
+      return (
+        <ForgotPasswordPage
+          onLogin={showLogin}
+          onHome={showHome}
+        />
+      )
+    }
+
+    if (authPage === 'reset-password') {
+      const token = new URLSearchParams(window.location.search).get('token') || ''
+      return (
+        <ResetPasswordPage
+          token={token}
+          onLogin={showLogin}
+          onForgotPassword={() => setAuthPage('forgot-password')}
+          onHome={showHome}
+        />
+      )
+    }
+
     return (
       <LoginPage
         onLogin={handleLogin}
         onRegister={() => setAuthPage('register')}
+        onForgotPassword={() => setAuthPage('forgot-password')}
         onHome={() => setAuthPage('landing')}
       />
     )

@@ -110,10 +110,60 @@ function validateChangePassword(body, req) {
 
   return null;
 }
+function validateForgotPassword(body) {
+  const unknown = rejectUnknownFields(body, ["email", "recoveryEmail"]);
+  if (unknown) return unknown;
 
+  const email = firstValue(body, ["email", "recoveryEmail"]);
+
+  if (
+    typeof email !== "string" ||
+    email.trim().length > 254 ||
+    !EMAIL_RE.test(email.trim())
+  ) {
+    return "Enter a valid email address.";
+  }
+
+  return null;
+}
+
+function validateResetPassword(body) {
+  const unknown = rejectUnknownFields(body, ["token", "newPassword"]);
+  if (unknown) return unknown;
+
+  if (
+    typeof body.token !== "string" ||
+    body.token.length < 32 ||
+    body.token.length > 512
+  ) {
+    return "Enter a valid recovery token.";
+  }
+
+  const password = body.newPassword;
+
+  if (
+    typeof password !== "string" ||
+    password.length < 8 ||
+    password.length > 40
+  ) {
+    return "New password must be between 8 and 40 characters.";
+  }
+
+  if (
+    !/[A-Za-z]/.test(password) ||
+    !/\d/.test(password) ||
+    !/[^A-Za-z0-9\s]/.test(password)
+  ) {
+    return "New password must include a letter, a number, and a special character.";
+  }
+
+  return null;
+}
 module.exports = {
   validateRegistration,
   validateLogin,
   validateChangePassword,
-  rejectUnknownFields
+  rejectUnknownFields,
+  validateForgotPassword,
+  validateResetPassword
 };

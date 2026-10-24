@@ -7,7 +7,9 @@ const { requireAuth } = require("../middleware/auth");
 const {
   validateRegistration,
   validateLogin,
-  validateChangePassword
+  validateChangePassword,
+  validateForgotPassword,
+  validateResetPassword
 } = require("../validators/authValidator");
 
 const router = express.Router();
@@ -109,6 +111,43 @@ router.get("/me",requireAuth, (req, res) => {
     user: req.session.user,
   });
 });
+
+
+const forgotPasswordLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    message: "Too many recovery requests. Please try again later.",
+  },
+});
+
+const resetPasswordLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    message: "Too many password reset attempts. Please try again later.",
+  },
+});
+
+router.post(
+  "/forgot-password",
+  forgotPasswordLimiter,
+  validateRequest(validateForgotPassword),
+  authController.forgotPassword
+);
+
+router.post(
+  "/reset-password",
+  resetPasswordLimiter,
+  validateRequest(validateResetPassword),
+  authController.resetPassword
+);
 
 // POST /api/auth/logout
 router.post("/logout", (req, res, next) => {

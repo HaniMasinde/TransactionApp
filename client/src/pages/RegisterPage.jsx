@@ -169,7 +169,7 @@ export default function RegisterPage({ onLogin, onHome }) {
         Already registered?{' '}
         <button
           type="button"
-          className="link-button"
+          className="link-button auth-account-link"
           onClick={onLogin}
         >
           Sign in

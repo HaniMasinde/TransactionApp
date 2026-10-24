@@ -1,4 +1,4 @@
-import { ArrowRight, Bell, CalendarDays, Check, CircleDollarSign, ShieldCheck, UsersRound } from 'lucide-react'
+import { ArrowRight, CalendarDays, Check, CircleDollarSign, ShieldCheck, UsersRound } from 'lucide-react'
 import './landing.css'
 
 const highlights = [

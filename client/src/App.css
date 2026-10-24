@@ -4888,6 +4888,50 @@ body:has(.gather-landing)::-webkit-scrollbar,
   .auth-screen--default .auth-story-card,
   .auth-screen--default .auth-story-footer { display: none; }
 }
+
+.auth-screen .auth-forgot-footnote .auth-forgot-link {
+  font-size: 15px;
+}
+
+.auth-screen .auth-footnote .auth-account-link {
+  font-size: 16px;
+}
+
+.auth-screen--register .auth-card {
+  color: #17251b;
+  background: rgb(255 255 255 / 84%);
+  box-shadow: 0 22px 70px rgb(12 25 16 / 24%);
+  backdrop-filter: blur(12px);
+}
+
+.auth-screen--register .auth-card > .eyebrow {
+  color: #176b40;
+}
+
+.auth-screen--register .auth-card h1 {
+  color: #17251b;
+}
+
+.auth-screen--register .auth-description,
+.auth-screen--register .auth-footnote,
+.auth-screen--register .auth-card .auth-footnote + .auth-footnote {
+  color: #47584c;
+}
+
+.auth-screen--register .auth-form label {
+  color: #26382d;
+}
+
+.auth-screen--register .auth-form input {
+  border-color: #c7d7ca;
+  color: #17251b;
+  background: rgb(255 255 255 / 88%);
+}
+
+.auth-screen--register .auth-form input::placeholder {
+  color: #66766a;
+}
+
 .member-payment-destination {
   display: grid;
   gap: 20px;
