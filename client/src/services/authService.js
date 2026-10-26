@@ -1,5 +1,18 @@
 import { apiRequest } from './apiClient.js'
 
+export async function sendEmailVerificationCode(email) {
+  return apiRequest('/auth/email-verification/send', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  })
+}
+
+export async function verifyEmailCode(email, code) {
+  return apiRequest('/auth/email-verification/verify', {
+    method: 'POST',
+    body: JSON.stringify({ email, code }),
+  })
+}
 export async function registerAccount(details) {
   return apiRequest('/auth/register', {
     method: 'POST',

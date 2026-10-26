@@ -63,6 +63,11 @@ export default function ProfilePage({ onNavigate }) {
             </div>
 
             <div>
+              <p className="feature-muted">Username</p>
+              <strong>{show(account.username)}</strong>
+            </div>
+
+            <div>
               <p className="feature-muted">Phone</p>
               <strong>{show(account.phone)}</strong>
             </div>
@@ -86,7 +91,7 @@ export default function ProfilePage({ onNavigate }) {
       ) : null}
 
       <p className="feature-muted">
-        Update your name and contact details in{' '}
+        Update your name, username, and contact details in{' '}
         <button
           className="link-button"
           type="button"

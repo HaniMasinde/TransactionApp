@@ -25,6 +25,24 @@ async function register({ fullName, phone, recoveryEmail, password }) {
     client = await getClient();
     await client.query("BEGIN");
 
+const verification = await client.query(
+  `SELECT normalized_email
+     FROM email_verification_codes
+    WHERE normalized_email = $1
+      AND verified_at IS NOT NULL
+      AND expires_at > NOW()
+    FOR UPDATE`,
+  [email]
+);
+
+if (!verification.rowCount) {
+  throw authError(
+    "Verify your email address before creating your account.",
+    403
+  );
+}
+
+
     const result = await client.query(
       `INSERT INTO users (
          full_name, phone, normalized_phone,
@@ -49,7 +67,10 @@ async function register({ fullName, phone, recoveryEmail, password }) {
          AND deleted_at IS NULL`,
       [`${user.full_name} has registered and is awaiting approval.`]
     );
-
+    await client.query(
+  "DELETE FROM email_verification_codes WHERE normalized_email = $1",
+  [email]
+);
     await client.query("COMMIT");
     return user;
   } catch (error) {

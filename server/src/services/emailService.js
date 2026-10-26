@@ -2,13 +2,21 @@
 
 const nodemailer = require("nodemailer");
 
+function getEmailFrom() {
+  if (String(process.env.SMTP_HOST || "").toLowerCase() === "smtp.gmail.com") {
+    return process.env.SMTP_USER;
+  }
+
+  return process.env.EMAIL_FROM;
+}
+
 function createTransporter() {
   const host = process.env.SMTP_HOST;
   const port = Number(process.env.SMTP_PORT || 587);
   const user = process.env.SMTP_USER;
   const pass = process.env.SMTP_PASS;
 
-  if (!host || !user || !pass || !process.env.EMAIL_FROM) {
+  if (!host || !user || !pass || !getEmailFrom()) {
     throw new Error("SMTP email configuration is incomplete.");
   }
 
@@ -26,11 +34,52 @@ function createTransporter() {
   });
 }
 
+async function sendEmailVerificationCode(email, code) {
+  const transporter = createTransporter();
+
+  const info = await transporter.sendMail({
+    from: getEmailFrom(),
+    to: email,
+    subject: "Verify your email for GCMS",
+    text: [
+      "Your GCMS email verification code is:",
+      "",
+      code,
+      "",
+      "This code expires in 10 minutes.",
+    ].join("\n"),
+  });
+
+  console.log("GCMS verification email delivery result:", {
+    recipient: email,
+    accepted: info.accepted,
+    rejected: info.rejected,
+    response: info.response,
+    messageId: info.messageId,
+  });
+
+  const accepted = (info.accepted || []).some((recipient) => {
+    const address =
+      typeof recipient === "string"
+        ? recipient
+        : recipient.address;
+
+    return address?.toLowerCase() === email.toLowerCase();
+  });
+
+  if (!accepted) {
+    throw new Error(
+      `SMTP server did not accept the verification email for ${email}.`
+    );
+  }
+}
+
+
 async function sendPasswordResetEmail(email, resetUrl) {
   const transporter = createTransporter();
 
   await transporter.sendMail({
-    from: process.env.EMAIL_FROM,
+    from: getEmailFrom(),
     to: email,
     subject: "Reset your GCMS password",
     text: [
@@ -50,4 +99,7 @@ async function sendPasswordResetEmail(email, resetUrl) {
   });
 }
 
-module.exports = { sendPasswordResetEmail };
+module.exports = {
+  sendPasswordResetEmail,
+  sendEmailVerificationCode
+};

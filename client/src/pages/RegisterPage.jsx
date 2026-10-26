@@ -1,6 +1,10 @@
 
 import { useState } from 'react'
-import { registerAccount } from '../services/authService.js'
+import {
+  registerAccount,
+  sendEmailVerificationCode,
+  verifyEmailCode
+} from '../services/authService.js'
 import AuthLayout from '../components/AuthLayout.jsx'
 import PasswordInput from '../components/PasswordInput.jsx'
 import useAutoDismiss from '../hooks/useAutoDismiss.js'
@@ -10,11 +14,16 @@ export default function RegisterPage({ onLogin, onHome }) {
   const [fullName, setFullName] = useState('')
   const [phone, setPhone] = useState('')
   const [recoveryEmail, setRecoveryEmail] = useState('')
+  const [verificationCode, setVerificationCode] = useState('')
+const [codeSent, setCodeSent] = useState(false)
+const [emailVerified, setEmailVerified] = useState(false)
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [sendingCode, setSendingCode] = useState(false)
+const [verifyingCode, setVerifyingCode] = useState(false)
 
   useAutoDismiss(error, setError)
   useAutoDismiss(success, setSuccess)
@@ -24,6 +33,84 @@ export default function RegisterPage({ onLogin, onHome }) {
   const passwordHasSpecial = /[^A-Za-z0-9\s]/.test(password)
   const passwordHasValidLength = password.length >= 8 && password.length <= 15
   const passwordIsValid = passwordHasLetter && passwordHasDigit && passwordHasSpecial && passwordHasValidLength
+
+function updateEmail(value) {
+  setRecoveryEmail(value)
+  setCodeSent(false)
+  setEmailVerified(false)
+  setVerificationCode('')
+  setError('')
+  setSuccess('')
+}
+
+async function handleSendCode() {
+  setError('')
+  setSuccess('')
+
+  const email = recoveryEmail.trim()
+
+  if (
+    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ||
+    email.length > 254
+  ) {
+    setError('Enter a valid email address first.')
+    return
+  }
+
+  setSendingCode(true)
+
+  try {
+    const result = await sendEmailVerificationCode(email)
+
+    setCodeSent(true)
+    setEmailVerified(false)
+    setVerificationCode('')
+    setSuccess(
+      result?.message ||
+      'A verification code has been sent to your email.'
+    )
+  } catch (err) {
+    setError(
+      err.message ||
+      'Unable to send the verification code. Please try again.'
+    )
+  } finally {
+    setSendingCode(false)
+  }
+}
+
+async function handleVerifyCode() {
+  setError('')
+  setSuccess('')
+
+  if (!/^\d{6}$/.test(verificationCode.trim())) {
+    setError('Enter the six-digit code sent to your email.')
+    return
+  }
+
+  setVerifyingCode(true)
+
+  try {
+    const result = await verifyEmailCode(
+      recoveryEmail.trim(),
+      verificationCode.trim()
+    )
+
+    setEmailVerified(true)
+    setSuccess(
+      result?.message ||
+      'Email verified successfully. You can now create your account.'
+    )
+  } catch (err) {
+    setError(
+      err.message ||
+      'Unable to verify this code. Please check it and try again.'
+    )
+  } finally {
+    setVerifyingCode(false)
+  }
+}
+
 
   async function handleSubmit(event) {
     event.preventDefault()
@@ -44,6 +131,10 @@ export default function RegisterPage({ onLogin, onHome }) {
       setError('Use 8–15 characters with at least one letter, one digit, and one special character.')
       return
     }
+    if (!emailVerified) {
+  setError('Verify your email address before creating your account.')
+  return
+}
 
     setSubmitting(true)
 
@@ -76,7 +167,7 @@ export default function RegisterPage({ onLogin, onHome }) {
       variant="register"
       eyebrow="GET STARTED"
       title="Create your account"
-      description="Register to access your group's contributions and activities."
+      description="Verify your email address before registering."
       onHome={onHome}
     >
       <form className="auth-form" onSubmit={handleSubmit}>
@@ -107,16 +198,74 @@ export default function RegisterPage({ onLogin, onHome }) {
           />
 
           <label htmlFor="register-email">Recovery email</label>
-          <input
-            id="register-email"
-            name="recoveryEmail"
-            type="email"
-            autoComplete="email"
-            placeholder="Enter your recovery email"
-            value={recoveryEmail}
-            onChange={event => setRecoveryEmail(event.target.value)}
-            required
-          />
+          
+<label htmlFor="register-email">Email address</label>
+<input
+  id="register-email"
+  name="recoveryEmail"
+  type="email"
+  autoComplete="email"
+  placeholder="Enter an email address you can access"
+  value={recoveryEmail}
+  onChange={event => updateEmail(event.target.value)}
+  maxLength={254}
+  required
+/>
+
+{!emailVerified && (
+  <button
+    className="primary-button"
+    type="button"
+    onClick={handleSendCode}
+    disabled={sendingCode || verifyingCode || submitting}
+  >
+    {sendingCode
+      ? 'Sending code…'
+      : codeSent
+        ? 'Resend verification code'
+        : 'Send verification code'}
+  </button>
+)}
+
+{codeSent && !emailVerified && (
+  <>
+    <label htmlFor="register-email-code">
+      Six-digit verification code
+    </label>
+
+    <input
+      id="register-email-code"
+      name="verificationCode"
+      type="text"
+      inputMode="numeric"
+      autoComplete="one-time-code"
+      placeholder="Enter the code from your email"
+      value={verificationCode}
+      onChange={event =>
+        setVerificationCode(
+          event.target.value.replace(/\D/g, '').slice(0, 6)
+        )
+      }
+      maxLength={6}
+      required
+    />
+
+    <button
+      className="primary-button"
+      type="button"
+      onClick={handleVerifyCode}
+      disabled={verifyingCode || sendingCode || submitting}
+    >
+      {verifyingCode ? 'Verifying…' : 'Verify email'}
+    </button>
+  </>
+)}
+
+{emailVerified && (
+  <p className="auth-success" role="status">
+    Email verified. You can now create your account.
+  </p>
+)}
 
           <label htmlFor="register-password">Password</label>
           <PasswordInput
@@ -166,12 +315,12 @@ export default function RegisterPage({ onLogin, onHome }) {
           {submitting && <p className="auth-status" role="status">Submitting your registration…</p>}
 
           <button
-            className="primary-button auth-submit"
+           className="primary-button auth-submit"
             type="submit"
-            disabled={submitting}
-          >
-            {submitting ? 'Creating account…' : 'Create account'}
-          </button>
+            disabled={submitting || !emailVerified}
+           >
+         {submitting ? 'Creating account…' : 'Create account'}
+</button>
       </form>
 
       <p className="auth-footnote">

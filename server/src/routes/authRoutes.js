@@ -64,6 +64,70 @@ const registerLimiter = rateLimit({
   },
 });
 
+const emailCodeLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    message: "Too many verification-code requests. Please try again later."
+  }
+});
+
+const emailVerifyLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    message: "Too many verification attempts. Please try again later."
+  }
+});
+
+function validateEmailOnly(body) {
+  if (
+    !body ||
+    typeof body.email !== "string" ||
+    body.email.trim().length > 254 ||
+    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email.trim())
+  ) {
+    return "Enter a valid email address.";
+  }
+
+  return null;
+}
+
+function validateEmailCode(body) {
+  const emailError = validateEmailOnly(body);
+
+  if (emailError) return emailError;
+
+  if (
+    typeof body.code !== "string" ||
+    !/^\d{6}$/.test(body.code.trim())
+  ) {
+    return "Enter the six-digit verification code.";
+  }
+
+  return null;
+}
+
+router.post(
+  "/email-verification/send",
+  emailCodeLimiter,
+  validateRequest(validateEmailOnly),
+  authController.sendEmailVerificationCode
+);
+
+router.post(
+  "/email-verification/verify",
+  emailVerifyLimiter,
+  validateRequest(validateEmailCode),
+  authController.verifyEmailCode
+);
+
 const passwordChangeLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 5,

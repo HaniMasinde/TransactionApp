@@ -109,6 +109,7 @@ router.get("/me", requireAuth, async (req, res, next) => {
       `SELECT
          id,
          full_name,
+         username,
          phone,
          recovery_email,
          role,
@@ -136,6 +137,7 @@ router.get("/me", requireAuth, async (req, res, next) => {
       member: {
         id: user.id,
         fullName: user.full_name,
+        username: user.username,
         phone: user.phone,
         recoveryEmail: user.recovery_email,
         role: user.role,
@@ -245,6 +247,10 @@ router.put(
 router.patch("/me", requireAuth, async (req, res, next) => {
   const body = req.body || {};
   const fullName = typeof body.fullName === "string" ? body.fullName.trim() : "";
+  const hasUsername = Object.prototype.hasOwnProperty.call(body, "username");
+  const usernameInput = typeof body.username === "string"
+    ? body.username.trim().toLowerCase()
+    : "";
   const phoneInput = typeof body.phone === "string" ? body.phone.trim() : "";
   const phone = normalizePhoneInput(phoneInput);
   const recoveryEmail = typeof body.recoveryEmail === "string"
@@ -255,6 +261,19 @@ router.patch("/me", requireAuth, async (req, res, next) => {
     return res.status(400).json({
       success: false,
       message: "Full name must be between 2 and 150 characters.",
+    });
+  }
+
+  if (
+    hasUsername &&
+    body.username !== null &&
+    body.username !== "" &&
+    (typeof body.username !== "string" ||
+      !/^[a-z0-9_]{3,30}$/.test(usernameInput))
+  ) {
+    return res.status(400).json({
+      success: false,
+      message: "Username must be 3 to 30 characters using letters, numbers, or underscores.",
     });
   }
 
@@ -279,7 +298,7 @@ router.patch("/me", requireAuth, async (req, res, next) => {
     await client.query("BEGIN");
 
     const oldResult = await client.query(
-      `SELECT full_name, phone, recovery_email
+      `SELECT full_name, username, phone, recovery_email
        FROM users
        WHERE id = $1
          AND deleted_at IS NULL
@@ -296,19 +315,31 @@ router.patch("/me", requireAuth, async (req, res, next) => {
     }
 
     const oldAccount = oldResult.rows[0];
+    const username = hasUsername
+      ? usernameInput || null
+      : oldAccount.username;
     const updatedResult = await client.query(
       `UPDATE users
        SET full_name = $1,
-           phone = $2,
-           normalized_phone = $3,
-           recovery_email = $4,
-           normalized_email = $5,
+           username = $2,
+           phone = $3,
+           normalized_phone = $4,
+           recovery_email = $5,
+           normalized_email = $6,
            updated_at = NOW()
-       WHERE id = $6
-       RETURNING id, full_name, phone, recovery_email, role,
+       WHERE id = $7
+       RETURNING id, full_name, username, phone, recovery_email, role,
                  account_status, created_at, updated_at,
                  profile_picture_updated_at`,
-      [fullName, phone, phone, recoveryEmail, recoveryEmail, req.session.user.id]
+      [
+        fullName,
+        username,
+        phone,
+        phone,
+        recoveryEmail,
+        recoveryEmail,
+        req.session.user.id,
+      ]
     );
 
     const account = updatedResult.rows[0];
@@ -324,6 +355,7 @@ router.patch("/me", requireAuth, async (req, res, next) => {
         JSON.stringify(oldAccount),
         JSON.stringify({
           full_name: account.full_name,
+          username: account.username,
           phone: account.phone,
           recovery_email: account.recovery_email,
         }),
@@ -339,6 +371,7 @@ router.patch("/me", requireAuth, async (req, res, next) => {
       member: {
         id: account.id,
         fullName: account.full_name,
+        username: account.username,
         phone: account.phone,
         recoveryEmail: account.recovery_email,
         role: account.role,
@@ -352,6 +385,13 @@ router.patch("/me", requireAuth, async (req, res, next) => {
     if (client) await client.query("ROLLBACK").catch(() => {});
 
     if (error.code === "23505") {
+      if (error.constraint === "users_username_lower_unique") {
+        return res.status(409).json({
+          success: false,
+          message: "That username is already in use.",
+        });
+      }
+
       return res.status(409).json({
         success: false,
         message: "That phone number or email address is already in use.",

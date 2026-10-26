@@ -13,3 +13,5 @@ out/
 .DS_Store
 .DS_Store?
 Thumbs.db
+.env.production
+.env.example

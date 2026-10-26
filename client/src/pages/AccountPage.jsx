@@ -19,6 +19,7 @@ export default function AccountPage({ user, onAccountUpdated }) {
   const requiresStrongPassword = user?.role === 'technical_admin'
   const [account, setAccount] = useState(null)
   const [fullName, setFullName] = useState('')
+  const [username, setUsername] = useState('')
   const [phone, setPhone] = useState('')
   const [recoveryEmail, setRecoveryEmail] = useState('')
   const [loading, setLoading] = useState(true)
@@ -72,6 +73,7 @@ export default function AccountPage({ user, onAccountUpdated }) {
         if (!active) return
         setAccount(result)
         setFullName(result.fullName || '')
+        setUsername(result.username || '')
         setPhone(result.phone || '')
         setRecoveryEmail(result.recoveryEmail || '')
       })
@@ -178,12 +180,14 @@ export default function AccountPage({ user, onAccountUpdated }) {
     try {
       const updated = await updateMyAccount({
         fullName: fullName.trim(),
+        username: username.trim(),
         phone: phone.trim(),
         recoveryEmail: recoveryEmail.trim(),
       })
 
       setAccount(updated)
       setFullName(updated.fullName || '')
+      setUsername(updated.username || '')
       setPhone(updated.phone || '')
       setRecoveryEmail(updated.recoveryEmail || '')
       onAccountUpdated?.(updated)
@@ -285,6 +289,7 @@ export default function AccountPage({ user, onAccountUpdated }) {
   const hasProfileChanges = Boolean(
     account && (
       fullName !== (account.fullName || '') ||
+      username !== (account.username || '') ||
       phone !== (account.phone || '') ||
       recoveryEmail !== (account.recoveryEmail || '')
     ),
@@ -298,7 +303,7 @@ export default function AccountPage({ user, onAccountUpdated }) {
       <PageHeader
         eyebrow="PERSONAL"
         title="Account settings"
-        description="Update the contact details for your account."
+        description="Update your name, username, and contact details."
       />
 
       <section className="content-card account-card">
@@ -333,6 +338,23 @@ export default function AccountPage({ user, onAccountUpdated }) {
                 required
               />
             </label>
+
+            <label htmlFor="account-username">
+              Username
+              <input
+                id="account-username"
+                name="username"
+                type="text"
+                autoComplete="username"
+                value={username}
+                onChange={event => setUsername(event.target.value)}
+                minLength={3}
+                maxLength={30}
+                pattern="[A-Za-z0-9_]{3,30}"
+                placeholder="Choose a username"
+              />
+            </label>
+            <p className="password-change-hint">Optional for now. Use 3–30 letters, numbers, or underscores. Usernames are reserved for future sign-in.</p>
 
             <label htmlFor="account-phone">
               Phone number

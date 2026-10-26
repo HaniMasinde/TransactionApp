@@ -1,6 +1,7 @@
 "use strict";
 
 const authService = require("../services/authService");
+const emailVerificationService = require("../services/emailVerificationService");
 const passwordRecoveryService = require("../services/passwordRecoveryService");
 
 function getRegistrationFields(body) {
@@ -22,6 +23,37 @@ function saveSession(session) {
   return new Promise((resolve, reject) => {
     session.save((error) => error ? reject(error) : resolve());
   });
+}
+
+async function sendEmailVerificationCode(req, res, next) {
+  try {
+    const result = await emailVerificationService.sendCode(
+      req.body.email
+    );
+
+    return res.status(200).json({
+      success: true,
+      ...result
+    });
+  } catch (error) {
+    return next(error);
+  }
+}
+
+async function verifyEmailCode(req, res, next) {
+  try {
+    const result = await emailVerificationService.verifyCode(
+      req.body.email,
+      req.body.code
+    );
+
+    return res.status(200).json({
+      success: true,
+      ...result
+    });
+  } catch (error) {
+    return next(error);
+  }
 }
 
 async function register(req, res, next) {
@@ -116,4 +148,12 @@ async function resetPassword(req, res, next) {
   }
 }
 
-module.exports = { register, login, changePassword, forgotPassword, resetPassword };
+module.exports = {
+  register,
+  login,
+  changePassword,
+  forgotPassword,
+  resetPassword,
+  sendEmailVerificationCode,
+  verifyEmailCode
+};

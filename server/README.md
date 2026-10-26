@@ -9,13 +9,23 @@ Requires Node.js 20+ and PostgreSQL 14+.
 ```sh
 cp .env.example .env  # only if .env does not already exist
 # Otherwise add/update these settings in the existing .env.
-# Set DATABASE_URL and a private JWT_SECRET of at least 32 characters.
+# Set DATABASE_URL and a private SESSION_SECRET of at least 32 characters.
 npm install
 npm run db:migrate
 npm run dev
 ```
 
 The API listens on `http://localhost:4000`. Client Vite proxies `/api` to this server. Run `npm run db:migrate` after deploying new migrations; the API server does not apply migrations automatically.
+
+## Email delivery
+
+Email verification and password recovery use SMTP. For Gmail, enable 2-Step Verification on the sending Google account, create a Google App Password, and set `SMTP_USER` to that Gmail address and `SMTP_PASS` to the generated App Password (not the account password). Gmail messages are sent from the authenticated `SMTP_USER` account; `EMAIL_FROM` is used with other SMTP providers. The example configuration uses Gmail SMTP on port 465 with TLS.
+
+Set these variables in the API server's environment (`server/.env` for local development, or the hosting provider's environment settings for a deployment), then restart/redeploy the API. Do not commit real SMTP credentials. Gmail or Google Workspace administrators may restrict App Passwords; if App Passwords are unavailable, use an approved SMTP provider and its host, port, security mode, username, and password instead.
+
+Email verification also requires migration `016_email_verification_codes.sql`; run `npm run db:migrate` against the deployed database before using registration.
+
+Usernames can be set or changed in Account settings and are stored case-insensitively; they are not accepted for login yet. Apply migration `017_usernames.sql` with `npm run db:migrate` before deploying the username-enabled API.
 
 ## Profile pictures
 
