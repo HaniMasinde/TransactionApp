@@ -1177,14 +1177,12 @@ footer span {
 .account-success,
 .technical-admin-error,
 .technical-admin-notice,
-.technical-admin-stats-error,
 .session-timeout-error,
 .landing-status,
 .feature-error,
 .feature-success,
 .feature-empty,
 .technical-admin-empty,
-.technical-admin-stats-empty,
 .empty-state:not([aria-live]):not([role='status']) {
   animation: feedback-state-dismiss 3s ease-out both;
 }
@@ -4039,14 +4037,12 @@ footer {
   .account-success,
   .technical-admin-error,
   .technical-admin-notice,
-  .technical-admin-stats-error,
   .session-timeout-error,
   .landing-status,
   .feature-error,
   .feature-success,
   .feature-empty,
   .technical-admin-empty,
-  .technical-admin-stats-empty,
   .empty-state {
     animation: feedback-state-dismiss 3s step-end both;
   }
@@ -4068,14 +4064,12 @@ footer {
   .account-success,
   .technical-admin-error,
   .technical-admin-notice,
-  .technical-admin-stats-error,
   .session-timeout-error,
   .landing-status,
   .feature-error,
   .feature-success,
   .feature-empty,
   .technical-admin-empty,
-  .technical-admin-stats-empty,
   .empty-state:not([aria-live]):not([role='status']) {
     animation-duration: 3s !important;
   }

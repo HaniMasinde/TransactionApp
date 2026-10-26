@@ -30,45 +30,92 @@ const ANNOUNCEMENT_ROLES = [
 
 router.use(requireAuth, requireRole("technical_admin"));
 
-// GET /api/technical-admin/activity-stats
-router.get("/activity-stats", async (req, res, next) => {
+// GET /api/technical-admin/audit-logs
+router.get("/audit-logs", async (req, res, next) => {
   try {
     const result = await query(
-      `WITH tracked_events (event_type) AS (
-         VALUES
-           ('registrations'),
-           ('logins'),
-           ('password_resets'),
-           ('picture_uploads'),
-           ('transaction_recordings'),
-           ('reversal_requests'),
-           ('report_generations'),
-           ('logouts'),
-           ('account_deletions')
-       )
-       SELECT tracked_events.event_type,
-              COUNT(activity.id)::int AS total,
-              COUNT(activity.id) FILTER (
-                WHERE activity.outcome = 'success'
-              )::int AS successful,
-              COUNT(activity.id) FILTER (
-                WHERE activity.outcome = 'error'
-              )::int AS errors
-       FROM tracked_events
-       LEFT JOIN application_activity_events activity
-         ON activity.event_type = tracked_events.event_type
-        AND activity.created_at >= NOW() - INTERVAL '30 days'
-       GROUP BY tracked_events.event_type
-       ORDER BY tracked_events.event_type`
+      `SELECT audit.id,
+              audit.action,
+              audit.target_type AS "targetType",
+              target.full_name AS "targetName",
+              audit.created_at AS "createdAt",
+              actor.full_name AS "actorName",
+              actor.role AS "actorRole"
+       FROM audit_logs audit
+       LEFT JOIN users actor ON actor.id = audit.actor_user_id
+       LEFT JOIN users target
+         ON audit.target_type = 'user'
+        AND target.id = audit.target_id
+       WHERE actor.role = 'technical_admin'
+          OR audit.action IN (
+            'user_role_changed',
+            'official_role_removal_approved',
+            'official_role_removal_rejected',
+            'app_update_announcement_sent'
+          )
+       ORDER BY audit.created_at DESC, audit.id DESC
+       LIMIT 50`
     );
 
     return res.status(200).json({
       success: true,
-      periodDays: 30,
-      stats: result.rows,
+      auditLogs: result.rows,
     });
   } catch (error) {
     return next(error);
+  }
+});
+
+router.delete("/audit-logs", async (req, res, next) => {
+  let client;
+
+  try {
+    client = await pool.connect();
+    await client.query("BEGIN");
+
+    const deleted = await client.query("DELETE FROM audit_logs");
+
+    const notifications = await client.query(
+      `INSERT INTO notifications (
+         recipient_user_id, event_type, title, message
+       )
+       SELECT id, 'audit_logs_cleared', 'Audit history cleared',
+              'The Technical Administrator cleared the audit history.'
+       FROM users
+       WHERE role = 'member'
+         AND account_status = 'approved'
+         AND deleted_at IS NULL`
+    );
+
+    await client.query(
+      `INSERT INTO audit_logs (
+         actor_user_id, action, target_type, new_values
+       )
+       VALUES ($1, 'audit_logs_cleared', 'audit_logs', $2::jsonb)`,
+      [
+        req.user.id,
+        JSON.stringify({ deleted_count: deleted.rowCount }),
+      ]
+    );
+
+    await client.query("COMMIT");
+
+    return res.status(200).json({
+      success: true,
+      message: "Audit history cleared. This deletion was recorded.",
+      deletedCount: deleted.rowCount,
+      notifiedCount: notifications.rowCount,
+    });
+  } catch (error) {
+    if (client) {
+      await client.query("ROLLBACK").catch((rollbackError) => {
+        console.error("Audit log deletion rollback failed:", rollbackError);
+      });
+    }
+
+    return next(error);
+  } finally {
+    if (client) client.release();
   }
 });
 
@@ -181,19 +228,33 @@ router.patch("/role-removal-requests/:id", async (req, res, next) => {
       [decision, req.user.id, request.id]
     );
 
-    await client.query(
-      `INSERT INTO notifications (
-         recipient_user_id, event_type, title, message
-       )
-       VALUES ($1, 'transaction_updated', $2, $3)`,
-      [
-        request.requester_user_id,
-        decision === "approved" ? "Role-removal request approved" : "Role-removal request declined",
-        decision === "approved"
-          ? `Your request to step down as ${request.office_role} was approved. Your account is now a member.`
-          : `Your request to step down as ${request.office_role} was declined. Contact the Technical Admin for more information.`,
-      ]
-    );
+    if (decision === "approved") {
+      await client.query(
+        `INSERT INTO notifications (
+           recipient_user_id, event_type, title, message
+         )
+         SELECT id, 'user_role_changed', 'Member role changed', $2
+         FROM users
+         WHERE account_status = 'approved'
+           AND deleted_at IS NULL
+           AND (role = 'member' OR id = $1)`,
+        [
+          request.requester_user_id,
+          `${request.full_name} stepped down from ${request.office_role} and is now a member.`,
+        ]
+      );
+    } else {
+      await client.query(
+        `INSERT INTO notifications (
+           recipient_user_id, event_type, title, message
+         )
+         VALUES ($1, 'transaction_updated', 'Role-removal request declined', $2)`,
+        [
+          request.requester_user_id,
+          `Your request to step down as ${request.office_role} was declined. Contact the Technical Admin for more information.`,
+        ]
+      );
+    }
 
     await client.query(
       `INSERT INTO audit_logs (
@@ -221,7 +282,7 @@ router.patch("/role-removal-requests/:id", async (req, res, next) => {
     return res.status(200).json({
       success: true,
       message: decision === "approved"
-        ? "Role-removal request approved."
+        ? "Role-removal request approved. The member was notified of the role change."
         : "Role-removal request declined.",
     });
   } catch (error) {
@@ -515,11 +576,26 @@ router.patch("/users/:id/role", async (req, res, next) => {
       ]
     );
 
+    await client.query(
+      `INSERT INTO notifications (
+         recipient_user_id, event_type, title, message
+       )
+       SELECT id, 'user_role_changed', 'Member role changed', $2
+       FROM users
+       WHERE account_status = 'approved'
+         AND deleted_at IS NULL
+         AND (role = 'member' OR id = $1)`,
+      [
+        updated.id,
+        `${updated.full_name}'s role was changed from ${target.role} to ${updated.role} by a Technical Administrator.`,
+      ]
+    );
+
     await client.query("COMMIT");
 
     return res.status(200).json({
       success: true,
-      message: "User role updated successfully.",
+      message: "User role updated successfully. The account holder was notified.",
       user: {
         id: updated.id,
         fullName: updated.full_name,

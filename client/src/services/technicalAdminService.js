@@ -23,12 +23,15 @@ export async function sendAppUpdateAnnouncement({ title, message }) {
   })
 }
 
-export async function getTechnicalAdminActivityStats() {
-  const data = await apiRequest('/technical-admin/activity-stats')
-  return {
-    periodDays: data.periodDays,
-    stats: Array.isArray(data.stats) ? data.stats : [],
-  }
+export async function getTechnicalAdminAuditLogs() {
+  const data = await apiRequest('/technical-admin/audit-logs')
+  return Array.isArray(data.auditLogs) ? data.auditLogs : []
+}
+
+export async function deleteTechnicalAdminAuditLogs() {
+  return apiRequest('/technical-admin/audit-logs', {
+    method: 'DELETE',
+  })
 }
 
 export async function getRoleRemovalRequests() {

@@ -76,7 +76,7 @@ Chairpersons must provide a response reason when approving or rejecting a forwar
 
 Technical Administrators can send an in-app announcement about upcoming app updates to all active, approved members, treasurers, secretaries, and chairpersons. Apply migration `013_app_update_announcements.sql` to allow the announcement notification event.
 
-The Technical Administration page also shows successful and failed operation counts for registrations, logins, password resets, profile picture uploads, transaction recordings, reversal requests, report generations, logouts, and account deletions over the last 30 days. Activity tracking starts after migration `014_application_activity_stats.sql` is applied; request bodies and personal content are not stored in activity events.
+The Technical Administration page includes role assignment, official role-removal approvals, app-update announcements, recent administrator audit records, PDF export, and an option to clear prior audit history. Audit-history clearing itself is retained as a new audit record and notifies all active approved members. Role changes notify all active approved members and the affected account through in-app notifications. Apply migrations `018_role_change_notifications.sql` and `019_audit_log_clear_notifications.sql` before deploying these notifications.
 
 Chairpersons, secretaries, and treasurers can submit a reasoned request to step down from their current office in Account settings. The Technical Admin receives a notification and can approve or decline the request; an approved request changes the official's role to member. A chairperson request cannot be approved until another chairperson is in place. Apply migration `015_official_role_removal_requests.sql`.
 
@@ -91,7 +91,8 @@ Chairpersons, secretaries, and treasurers can submit a reasoned request to step 
 - Treasurer: `PATCH /api/transactions/:id/reverse` (within 12 hours, or submits a reasoned approval request after the cutoff)
 - Chairperson: `GET /api/transactions/reversal-requests`, `PATCH /api/transactions/reversal-requests/:id`
 - Technical Administrator: `POST /api/technical-admin/announcements` to notify all active, approved members and office holders about upcoming app updates.
-- Technical Administrator: `GET /api/technical-admin/activity-stats` to view 30-day application operation counts.
+- Technical Administrator: `GET /api/technical-admin/audit-logs` to review recent administrator audit records.
+- Technical Administrator: `DELETE /api/technical-admin/audit-logs` to clear prior audit records while retaining a record of the deletion.
 - Technical Administrator: `GET /api/technical-admin/role-removal-requests`, `PATCH /api/technical-admin/role-removal-requests/:id`
 - Official: `GET/POST /api/members/me/role-removal-request`
 - Treasurer: `GET/PUT /api/payment-destination` to view or update the group contribution payment number. Approved members can read it with `GET /api/payment-destination`.
