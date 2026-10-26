@@ -805,17 +805,19 @@ td code {
 }
 
 .profile-picture-editor {
+  display: grid;
   max-width: 560px;
+  gap: 24px;
 }
 
 .profile-picture-editor .account-card-heading {
-  margin-bottom: 18px;
+  margin-bottom: 0;
 }
 
 .profile-picture-controls {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 20px;
 }
 
 .profile-picture-current {
@@ -856,8 +858,8 @@ td code {
   display: grid;
   width: fit-content;
   max-width: 100%;
-  gap: 14px;
-  margin-top: 20px;
+  gap: 16px;
+  margin-top: 0;
 }
 
 .profile-crop-preview {

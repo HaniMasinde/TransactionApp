@@ -275,14 +275,6 @@ export default function ProfilePictureEditor({ account, onUpdated }) {
         </label>
       </div>
 
-      {!selectedFile && !preparing && (
-        <p className="password-change-hint" role="status">
-          {account.profilePictureUpdatedAt
-            ? 'Your current profile picture is shown above.'
-            : 'No profile picture has been uploaded yet.'}
-        </p>
-      )}
-
       {selectedFile && (
         <div className="profile-picture-cropper">
           <canvas
