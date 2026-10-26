@@ -35,11 +35,12 @@ function DashboardPreview() {
   )
 }
 
-export default function LandingPage({ onLogin, onRegister }) {
+export default function LandingPage({ onLogin, onRegister, notice }) {
   const go = (event, action) => { event.preventDefault(); action?.() }
 
   return (
     <main className="landing-page" id="top">
+      {notice && <p className="landing-status" role="status">{notice}</p>}
       <header className="landing-header"><Brand /><nav aria-label="Main navigation"><a href="#features">Features</a><a href="#how-it-works">How it works</a></nav><div className="landing-header-actions"><button className="landing-login" onClick={onLogin}>Log in</button><button className="landing-signup" onClick={onRegister}>Get started <ArrowRight size={16} /></button></div></header>
 
       <section className="landing-hero">

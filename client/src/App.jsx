@@ -20,6 +20,7 @@ import ProfilePage from './pages/ProfilePage.jsx'
 import RegisterPage from './pages/RegisterPage.jsx'
 import LandingPage from './pages/LandingPage.jsx'
 import TechnicalAdminPage from './pages/TechnicalAdminPage.jsx'
+import SessionTimeout from './components/SessionTimeout.jsx'
 import useAutoDismiss from './hooks/useAutoDismiss.js'
 
 const pageComponents = {
@@ -55,6 +56,8 @@ export default function App() {
   const [page, setPage] = useState('dashboard')
   const [checkingSession, setCheckingSession] = useState(true)
   const [appError, setAppError] = useState('')
+  const [authNotice, setAuthNotice] = useState('')
+  const [loggingOut, setLoggingOut] = useState(false)
   const [authPage, setAuthPage] = useState(() =>
     window.location.pathname.replace(/\/$/, '') === '/reset-password'
       ? 'reset-password'
@@ -89,19 +92,47 @@ export default function App() {
     setUser(signedInUser)
     setPage(defaultPageFor(signedInUser))
     setAppError('')
+    setAuthNotice('')
   }
 
   async function handleLogout() {
     setAppError('')
+    setLoggingOut(true)
 
     try {
       await logout()
       setUser(null)
       setPage('dashboard')
       setAuthPage('landing')
+      setAuthNotice('You have been signed out.')
     } catch (error) {
       setAppError(error.message || 'Unable to sign out. Please try again.')
+    } finally {
+      setLoggingOut(false)
     }
+  }
+
+  async function handleExtendSession() {
+    try {
+      const currentUser = await getCurrentUser()
+      setUser(currentUser)
+      return true
+    } catch (error) {
+      if (error.status === 401) {
+        setUser(null)
+        setPage('dashboard')
+        setAuthPage('login')
+        return false
+      }
+      throw error
+    }
+  }
+
+  function handleSessionExpired() {
+    setUser(null)
+    setPage('dashboard')
+    setAuthPage('login')
+    setAuthNotice('Your session expired after 20 minutes of inactivity. Please sign in again.')
   }
 
   function handleAccountUpdated(account) {
@@ -110,6 +141,7 @@ export default function App() {
       fullName: account.fullName,
       phone: account.phone,
       recoveryEmail: account.recoveryEmail,
+      profilePictureUpdatedAt: account.profilePictureUpdatedAt,
     }))
   }
 
@@ -152,6 +184,7 @@ export default function App() {
         <LandingPage
           onLogin={() => setAuthPage('login')}
           onRegister={() => setAuthPage('register')}
+          notice={authNotice}
         />
       )
     }
@@ -216,7 +249,7 @@ export default function App() {
       'notifications', 'account', 'profile',
     ],
     technical_admin: [
-      'technicalAdmin','account','profile',
+      'technicalAdmin', 'notifications', 'account', 'profile',
     ],
   }
 
@@ -232,6 +265,7 @@ export default function App() {
       onThemeToggle={handleThemeToggle}
       onNavigate={setPage}
       onLogout={handleLogout}
+      loggingOut={loggingOut}
     >
       {appError && (
         <p className="app-error" role="alert">
@@ -242,6 +276,13 @@ export default function App() {
         user={user}
         onNavigate={setPage}
         onAccountUpdated={handleAccountUpdated}
+      />
+      <SessionTimeout
+        userId={user.id}
+        onExtend={handleExtendSession}
+        onLogout={handleLogout}
+        loggingOut={loggingOut}
+        onExpire={handleSessionExpired}
       />
     </AppLayout>
   )

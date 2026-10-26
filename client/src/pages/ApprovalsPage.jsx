@@ -8,6 +8,11 @@ import {
   getPendingMembers,
   rejectMember,
 } from '../services/adminService.js'
+import {
+  decideTransactionReversal,
+  getTransactionReversalRequests,
+} from '../services/transactionService.js'
+import { formatCurrency } from '../utils/formatCurrency.js'
 import useAutoDismiss from '../hooks/useAutoDismiss.js'
 
 export default function ApprovalsPage() {
@@ -15,6 +20,10 @@ export default function ApprovalsPage() {
   const [loading, setLoading] = useState(true)
   const [deletionRequests, setDeletionRequests] = useState([])
   const [deletionLoading, setDeletionLoading] = useState(true)
+  const [reversalRequests, setReversalRequests] = useState([])
+  const [reversalLoading, setReversalLoading] = useState(true)
+  const [reversalBusyId, setReversalBusyId] = useState('')
+  const [reversalReasons, setReversalReasons] = useState({})
   const [deletionReasons, setDeletionReasons] = useState({})
   const [deletionBusyId, setDeletionBusyId] = useState('')
   const [confirmingDeletion, setConfirmingDeletion] = useState(null)
@@ -22,6 +31,8 @@ export default function ApprovalsPage() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [busyId, setBusyId] = useState('')
+  const [busyAction, setBusyAction] = useState('')
+  const [reversalBusyAction, setReversalBusyAction] = useState('')
 
   useAutoDismiss(error, setError)
   useAutoDismiss(success, setSuccess)
@@ -38,6 +49,25 @@ export default function ApprovalsPage() {
       })
       .finally(() => {
         if (active) setLoading(false)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [])
+
+  useEffect(() => {
+    let active = true
+
+    getTransactionReversalRequests()
+      .then(result => {
+        if (active) setReversalRequests(result)
+      })
+      .catch(requestError => {
+        if (active) setError(requestError.message || 'Unable to load transaction reversal requests.')
+      })
+      .finally(() => {
+        if (active) setReversalLoading(false)
       })
 
     return () => {
@@ -66,16 +96,20 @@ export default function ApprovalsPage() {
 
   async function decide(member, action) {
     setBusyId(member.id)
+    setBusyAction(action)
     setError('')
+    setSuccess('')
 
     try {
       if (action === 'approve') await approveMember(member.id)
       else await rejectMember(member.id)
       setMembers(current => current.filter(item => item.id !== member.id))
+      setSuccess(action === 'approve' ? 'Registration approved.' : 'Registration declined.')
     } catch (requestError) {
       setError(requestError.message || 'Unable to update this registration.')
     } finally {
       setBusyId('')
+      setBusyAction('')
     }
   }
 
@@ -104,6 +138,35 @@ export default function ApprovalsPage() {
     }
   }
 
+  async function decideTransactionReversalRequest(request, decision) {
+    const reason = String(reversalReasons[request.id] || '').trim()
+    if (reason.length < 5 || reason.length > 1000) {
+      setError('Enter a chairperson response reason of 5 to 1000 characters.')
+      return
+    }
+
+    setReversalBusyId(request.id)
+    setReversalBusyAction(decision)
+    setError('')
+    setSuccess('')
+
+    try {
+      const result = await decideTransactionReversal(request.id, decision, reason)
+      setReversalRequests(current => current.filter(item => item.id !== request.id))
+      setReversalReasons(current => {
+        const next = { ...current }
+        delete next[request.id]
+        return next
+      })
+      setSuccess(result.message || 'Transaction reversal request reviewed.')
+    } catch (requestError) {
+      setError(requestError.message || 'Unable to review this reversal request.')
+    } finally {
+      setReversalBusyId('')
+      setReversalBusyAction('')
+    }
+  }
+
   function decideDeletion(request, decision) {
     const reason = String(deletionReasons[request.id] || '').trim()
     if (reason.length < 5) {
@@ -125,10 +188,95 @@ export default function ApprovalsPage() {
       <PageHeader
         eyebrow="MEMBER MANAGEMENT"
         title="Member approvals"
-        description="Review registration and account deletion requests."
+        description="Review member registrations, account deletion, and transaction reversal requests."
       />
       {error && <p className="app-error" role="alert">{error}</p>}
       {success && <p className="account-success" role="status">{success}</p>}
+
+      <section className="content-card">
+        <div className="account-card-heading">
+          <div>
+            <h2>Transaction reversal requests</h2>
+            <p>Review reversal requests forwarded for chairperson approval.</p>
+          </div>
+        </div>
+        {reversalLoading ? (
+          <p>Loading reversal requests…</p>
+        ) : reversalRequests.length === 0 ? (
+          <p className="empty-state">There are no pending reversal requests.</p>
+        ) : (
+          <section className="approval-grid">
+            {reversalRequests.map(request => (
+              <article className="content-card approval-card" key={request.id}>
+                <div className="person-cell">
+                  <Avatar name={request.requested_by_name} />
+                  <b>{request.requested_by_name}</b>
+                </div>
+                <p>
+                  Request to reverse {request.entered_member_name}’s contribution
+                  {' '}of {formatCurrency(request.amount)}.
+                </p>
+                {request.mpesa_reference && (
+                  <p>M-Pesa code: <code>{request.mpesa_reference}</code></p>
+                )}
+                {request.created_at && (
+                  <small>
+                    Requested {new Intl.DateTimeFormat('en-KE', {
+                      dateStyle: 'medium',
+                      timeStyle: 'short',
+                    }).format(new Date(request.created_at))}
+                  </small>
+                )}
+                <div className="deletion-request-reason">
+                  <span>{request.requester_role === 'member' ? 'MEMBER’S REASON' : 'TREASURER’S REASON'}</span>
+                  <p>{request.reason}</p>
+                </div>
+                <div className="deletion-decision-field">
+                  <label htmlFor={`reversal-decision-reason-${request.id}`}>
+                    Chairperson response reason
+                    <textarea
+                      className="deletion-decision-textarea"
+                      id={`reversal-decision-reason-${request.id}`}
+                      placeholder="Explain why you are approving or declining this reversal."
+                      value={reversalReasons[request.id] || ''}
+                      onChange={event => setReversalReasons(current => ({
+                        ...current,
+                        [request.id]: event.target.value,
+                      }))}
+                      minLength={5}
+                      maxLength={1000}
+                      rows={3}
+                      required
+                    />
+                  </label>
+                  <div className="deletion-decision-field-footer">
+                    <span>This reason will be sent to the requester and treasurer.</span>
+                    <span>{(reversalReasons[request.id] || '').length}/1000</span>
+                  </div>
+                </div>
+                <div className="approval-actions">
+                  <button
+                    className="secondary-button"
+                    type="button"
+                    disabled={reversalBusyId === request.id || String(reversalReasons[request.id] || '').trim().length < 5}
+                    onClick={() => decideTransactionReversalRequest(request, 'rejected')}
+                  >
+                    {reversalBusyId === request.id && reversalBusyAction === 'rejected' ? 'Declining…' : 'Decline'}
+                  </button>
+                  <button
+                    className="primary-button"
+                    type="button"
+                    disabled={reversalBusyId === request.id || String(reversalReasons[request.id] || '').trim().length < 5}
+                    onClick={() => decideTransactionReversalRequest(request, 'approved')}
+                  >
+                    {reversalBusyId === request.id && reversalBusyAction === 'approved' ? 'Approving…' : 'Approve reversal'}
+                  </button>
+                </div>
+              </article>
+            ))}
+          </section>
+        )}
+      </section>
 
       <section className="content-card">
         <div className="account-card-heading">
@@ -191,7 +339,7 @@ export default function ApprovalsPage() {
                     disabled={deletionBusyId === request.id || (deletionReasons[request.id] || '').trim().length < 5}
                     onClick={() => decideDeletion(request, 'rejected')}
                   >
-                    Decline request
+                    {deletionBusyId === request.id ? 'Declining…' : 'Decline request'}
                   </button>
                   <button
                     className="primary-button"
@@ -199,7 +347,7 @@ export default function ApprovalsPage() {
                     disabled={deletionBusyId === request.id || (deletionReasons[request.id] || '').trim().length < 5}
                     onClick={() => decideDeletion(request, 'approved')}
                   >
-                    Approve deletion
+                    {deletionBusyId === request.id ? 'Approving…' : 'Approve deletion'}
                   </button>
                 </div>
               </article>
@@ -289,7 +437,7 @@ export default function ApprovalsPage() {
                     disabled={busyId === member.id}
                     onClick={() => decide(member, 'reject')}
                   >
-                    Decline
+                    {busyId === member.id && busyAction === 'reject' ? 'Declining…' : 'Decline'}
                   </button>
                   <button
                     className="primary-button"
@@ -297,7 +445,7 @@ export default function ApprovalsPage() {
                     disabled={busyId === member.id}
                     onClick={() => decide(member, 'approve')}
                   >
-                    Approve
+                    {busyId === member.id && busyAction === 'approve' ? 'Approving…' : 'Approve'}
                   </button>
                 </div>
               </article>

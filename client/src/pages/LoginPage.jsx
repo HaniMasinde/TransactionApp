@@ -72,6 +72,7 @@ export default function LoginPage({ onLogin, onRegister, onForgotPassword, onHom
               {error}
             </p>
           )}
+          {submitting && <p className="auth-status" role="status">Signing you in…</p>}
 
           <button
             className="primary-button auth-submit"

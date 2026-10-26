@@ -44,6 +44,7 @@ export default function ForgotPasswordPage({ onLogin, onHome }) {
           required
         />
         {error && <p className="auth-error" role="alert">{error}</p>}
+        {submitting && <p className="auth-status" role="status">Sending your reset request…</p>}
         {message && <p className="auth-success" role="status">{message}</p>}
         <button className="primary-button auth-submit" type="submit" disabled={submitting}>
           {submitting ? 'Sending…' : 'Send reset link'}

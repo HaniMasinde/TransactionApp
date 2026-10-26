@@ -81,6 +81,7 @@ export default function ResetPasswordPage({ token, onLogin, onForgotPassword, on
           />
           <p className="password-requirements">{passwordPolicy}</p>
           {error && <p className="auth-error" role="alert">{error}</p>}
+          {submitting && <p className="auth-status" role="status">Updating your password…</p>}
           <button className="primary-button auth-submit" type="submit" disabled={submitting || !token}>
             {submitting ? 'Updating…' : 'Reset password'}
           </button>

@@ -1,5 +1,6 @@
 import { Bell, Menu, Moon, Sun } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import ProfileAvatar from '../components/ProfileAvatar.jsx'
 import { getUnreadNotificationCount } from '../services/notificationService.js'
 
 function displayName(user) {
@@ -17,12 +18,6 @@ export default function Topbar({
 }) {
   const [unreadCount, setUnreadCount] = useState(0)
   const name = displayName(user)
-  const initials = name
-    .split(/\s+/)
-    .map(part => part[0])
-    .slice(0, 2)
-    .join('')
-    .toUpperCase()
 
   useEffect(() => {
     let active = true
@@ -94,7 +89,11 @@ export default function Topbar({
           )}
         </button>
         <span className="topbar-identity">
-          <span className="avatar avatar-green">{initials}</span>
+          <ProfileAvatar
+            userId={user?.id}
+            name={name}
+            profilePictureUpdatedAt={user?.profilePictureUpdatedAt}
+          />
           <span>{name}</span>
         </span>
       </div>

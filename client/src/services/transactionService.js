@@ -35,7 +35,19 @@ export async function reverseTransaction(id, reason) {
     body: JSON.stringify({ reason }),
   })
 
-  return result.transaction
+  return result
+}
+
+export async function getTransactionReversalRequests() {
+  const result = await apiRequest('/transactions/reversal-requests')
+  return Array.isArray(result.requests) ? result.requests : []
+}
+
+export async function decideTransactionReversal(requestId, decision, reason) {
+  return apiRequest(`/transactions/reversal-requests/${encodeURIComponent(requestId)}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ decision, reason }),
+  })
 }
 
 export async function getWeeklyGroupReport(weekStart) {

@@ -13,7 +13,7 @@ import {
   ShieldCheck,
   LogOut,
 } from 'lucide-react'
-import Avatar from '../components/ui/Avatar.jsx'
+import ProfileAvatar from '../components/ProfileAvatar.jsx'
 
 const navigationItems = [
   { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -78,9 +78,10 @@ const roleNavigation = {
   ],
   technical_admin: [
     'technicalAdmin',
+    'notifications',
     'account',
     'profile',
-],
+  ],
 }
 
 export default function Sidebar({
@@ -89,6 +90,7 @@ export default function Sidebar({
   user,
   role,
   onLogout,
+  loggingOut = false,
   onClose,
   mobileOpen = false,
 }) {
@@ -149,7 +151,11 @@ export default function Sidebar({
 
       <div className="sidebar-footer">
         <div className="sidebar-user">
-          <Avatar name={displayName} />
+          <ProfileAvatar
+            userId={user?.id}
+            name={displayName}
+            profilePictureUpdatedAt={user?.profilePictureUpdatedAt}
+          />
           <span className="sidebar-user-copy">
             <strong>{displayName}</strong>
             <small>{displayRole}</small>
@@ -159,9 +165,11 @@ export default function Sidebar({
           className="sidebar-logout-button"
           type="button"
           onClick={onLogout}
+          disabled={loggingOut}
+          aria-live="polite"
         >
           <LogOut size={17} strokeWidth={1.8} />
-          <span>Sign out</span>
+          <span>{loggingOut ? 'Signing out…' : 'Sign out'}</span>
         </button>
       </div>
     </aside>

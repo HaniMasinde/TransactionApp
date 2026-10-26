@@ -3,13 +3,17 @@ import PageHeader from '../components/PageHeader.jsx'
 import PasswordInput from '../components/PasswordInput.jsx'
 import { changePassword } from '../services/authService.js'
 import { getPaymentDestination, savePaymentDestination } from '../services/paymentDestinationService.js'
+import ProfilePictureEditor from '../components/ProfilePictureEditor.jsx'
 import {
   getMyAccount,
   getMyDeletionRequest,
+  getMyRoleRemovalRequest,
   requestAccountDeletion,
+  requestRoleRemoval,
   updateMyAccount,
 } from '../services/memberService.js'
 import useAutoDismiss from '../hooks/useAutoDismiss.js'
+import { isKenyanMobilePhone } from '../utils/phoneNumber.js'
 
 export default function AccountPage({ user, onAccountUpdated }) {
   const requiresStrongPassword = user?.role === 'technical_admin'
@@ -28,12 +32,20 @@ export default function AccountPage({ user, onAccountUpdated }) {
   const [passwordError, setPasswordError] = useState('')
   const [passwordSuccess, setPasswordSuccess] = useState('')
   const [deletionRequest, setDeletionRequest] = useState(null)
+  const [deletionStatusLoading, setDeletionStatusLoading] = useState(false)
   const [deletionReason, setDeletionReason] = useState('')
   const [deletionSaving, setDeletionSaving] = useState(false)
   const [deletionError, setDeletionError] = useState('')
   const [deletionSuccess, setDeletionSuccess] = useState('')
+  const [roleRemovalRequest, setRoleRemovalRequest] = useState(null)
+  const [roleRemovalLoading, setRoleRemovalLoading] = useState(false)
+  const [roleRemovalReason, setRoleRemovalReason] = useState('')
+  const [roleRemovalSaving, setRoleRemovalSaving] = useState(false)
+  const [roleRemovalError, setRoleRemovalError] = useState('')
+  const [roleRemovalSuccess, setRoleRemovalSuccess] = useState('')
   const isMember = user?.role === 'member'
   const isTreasurer = user?.role === 'treasurer'
+  const isOfficial = ['chairperson', 'secretary', 'treasurer'].includes(user?.role)
   const [paymentNumber, setPaymentNumber] = useState('')
   const [paymentNumberInputActive, setPaymentNumberInputActive] = useState(false)
   const [paymentLoading, setPaymentLoading] = useState(isTreasurer)
@@ -47,6 +59,8 @@ export default function AccountPage({ user, onAccountUpdated }) {
   useAutoDismiss(passwordSuccess, setPasswordSuccess)
   useAutoDismiss(deletionError, setDeletionError)
   useAutoDismiss(deletionSuccess, setDeletionSuccess)
+  useAutoDismiss(roleRemovalError, setRoleRemovalError)
+  useAutoDismiss(roleRemovalSuccess, setRoleRemovalSuccess)
   useAutoDismiss(paymentError, setPaymentError)
   useAutoDismiss(paymentSuccess, setPaymentSuccess)
 
@@ -109,6 +123,7 @@ export default function AccountPage({ user, onAccountUpdated }) {
     if (!isMember) return undefined
 
     let active = true
+    setDeletionStatusLoading(true)
     getMyDeletionRequest()
       .then(result => {
         if (active) setDeletionRequest(result)
@@ -116,16 +131,48 @@ export default function AccountPage({ user, onAccountUpdated }) {
       .catch(requestError => {
         if (active) setDeletionError(requestError.message || 'Unable to load deletion request status.')
       })
+      .finally(() => {
+        if (active) setDeletionStatusLoading(false)
+      })
 
     return () => {
       active = false
     }
   }, [isMember])
 
+  useEffect(() => {
+    if (!isOfficial) return undefined
+
+    let active = true
+    setRoleRemovalLoading(true)
+    getMyRoleRemovalRequest()
+      .then(result => {
+        if (active) setRoleRemovalRequest(result)
+      })
+      .catch(requestError => {
+        if (active) {
+          setRoleRemovalError(requestError.message || 'Unable to load your role-removal request.')
+        }
+      })
+      .finally(() => {
+        if (active) setRoleRemovalLoading(false)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [isOfficial])
+
   async function handleSubmit(event) {
     event.preventDefault()
     setError('')
     setSuccess('')
+
+    if (!isKenyanMobilePhone(phone)) {
+      setError('Enter a valid Kenyan mobile number, such as 0712 345 678 or +254 712 345 678.')
+      return
+    }
+
     setSaving(true)
 
     try {
@@ -148,6 +195,15 @@ export default function AccountPage({ user, onAccountUpdated }) {
     }
   }
 
+  function handleProfilePictureUpdated(profilePictureUpdatedAt) {
+    setAccount(current => current
+      ? { ...current, profilePictureUpdatedAt }
+      : current)
+    if (account) {
+      onAccountUpdated?.({ ...account, profilePictureUpdatedAt })
+    }
+  }
+
   async function handleDeletionRequest(event) {
     event.preventDefault()
     setDeletionError('')
@@ -163,6 +219,24 @@ export default function AccountPage({ user, onAccountUpdated }) {
       setDeletionError(requestError.message || 'Unable to request account deletion.')
     } finally {
       setDeletionSaving(false)
+    }
+  }
+
+  async function handleRoleRemovalRequest(event) {
+    event.preventDefault()
+    setRoleRemovalError('')
+    setRoleRemovalSuccess('')
+    setRoleRemovalSaving(true)
+
+    try {
+      const result = await requestRoleRemoval(roleRemovalReason.trim())
+      setRoleRemovalRequest(result.roleRemovalRequest)
+      setRoleRemovalReason('')
+      setRoleRemovalSuccess(result.message || 'Your role-removal request was sent to the Technical Admin.')
+    } catch (requestError) {
+      setRoleRemovalError(requestError.message || 'Unable to submit your role-removal request.')
+    } finally {
+      setRoleRemovalSaving(false)
     }
   }
 
@@ -267,13 +341,15 @@ export default function AccountPage({ user, onAccountUpdated }) {
                 name="phone"
                 type="tel"
                 autoComplete="tel"
+                inputMode="tel"
                 value={phone}
                 onChange={event => setPhone(event.target.value)}
-                minLength={9}
+                placeholder="0712 345 678 or +254 712 345 678"
                 maxLength={24}
                 required
               />
             </label>
+            <p className="password-change-hint">Use a Kenyan mobile number starting with 07, 01, or +254.</p>
 
             <label htmlFor="account-recovery-email">
               Recovery email
@@ -297,6 +373,15 @@ export default function AccountPage({ user, onAccountUpdated }) {
           <p className="empty-state">Account details are unavailable.</p>
         ) : null}
       </section>
+
+      {account && !loading && (
+        <section className="content-card account-card">
+          <ProfilePictureEditor
+            account={account}
+            onUpdated={handleProfilePictureUpdated}
+          />
+        </section>
+      )}
 
       {isTreasurer && (
         <section className="content-card account-card">
@@ -350,7 +435,9 @@ export default function AccountPage({ user, onAccountUpdated }) {
           {deletionError && <p className="app-error" role="alert">{deletionError}</p>}
           {deletionSuccess && <p className="account-success" role="status">{deletionSuccess}</p>}
 
-          {deletionRequest ? (
+          {deletionStatusLoading ? (
+            <p className="empty-state" role="status">Checking your account deletion request…</p>
+          ) : deletionRequest ? (
             <div role="status">
               <p>
                 Your request is awaiting chairperson approval. Submitted reason:
@@ -363,6 +450,8 @@ export default function AccountPage({ user, onAccountUpdated }) {
               )}
             </div>
           ) : (
+            <>
+            {!deletionError && <p className="password-change-hint" role="status">You have no pending account deletion request.</p>}
             <form className="account-form" onSubmit={handleDeletionRequest}>
               <label htmlFor="account-deletion-reason">
                 Reason for your request
@@ -383,6 +472,59 @@ export default function AccountPage({ user, onAccountUpdated }) {
                 disabled={deletionSaving || deletionReason.trim().length < 5}
               >
                 {deletionSaving ? 'Sending request…' : 'Request account deletion'}
+              </button>
+            </form>
+            </>
+          )}
+        </section>
+      )}
+
+      {isOfficial && (
+        <section className="content-card account-card">
+          <div className="account-card-heading">
+            <div>
+              <h2>Request to step down</h2>
+              <p>
+                The Technical Admin will review your request. You will remain
+                {` ${user.role}`} until it is approved.
+              </p>
+            </div>
+          </div>
+
+          {roleRemovalError && <p className="app-error" role="alert">{roleRemovalError}</p>}
+          {roleRemovalSuccess && <p className="account-success" role="status">{roleRemovalSuccess}</p>}
+          {roleRemovalLoading ? (
+            <p className="empty-state" role="status">Checking your role-removal request…</p>
+          ) : roleRemovalRequest ? (
+            <div role="status">
+              <p>Your request to step down as {roleRemovalRequest.officeRole} is awaiting Technical Admin review.</p>
+              <p><strong>{roleRemovalRequest.reason}</strong></p>
+              {roleRemovalRequest.requestedAt && (
+                <p className="password-change-hint">
+                  Submitted {new Date(roleRemovalRequest.requestedAt).toLocaleString('en-KE')}
+                </p>
+              )}
+            </div>
+          ) : (
+            <form className="account-form" onSubmit={handleRoleRemovalRequest}>
+              <label htmlFor="role-removal-reason">
+                Reason for stepping down
+                <textarea
+                  id="role-removal-reason"
+                  value={roleRemovalReason}
+                  onChange={event => setRoleRemovalReason(event.target.value)}
+                  minLength={5}
+                  maxLength={1000}
+                  rows={4}
+                  required
+                />
+              </label>
+              <button
+                className="secondary-button"
+                type="submit"
+                disabled={roleRemovalSaving || roleRemovalReason.trim().length < 5}
+              >
+                {roleRemovalSaving ? 'Sending request…' : 'Request to step down'}
               </button>
             </form>
           )}

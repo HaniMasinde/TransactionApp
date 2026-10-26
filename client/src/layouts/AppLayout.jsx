@@ -24,6 +24,7 @@ export default function AppLayout({
   onThemeToggle,
   onNavigate,
   onLogout,
+  loggingOut = false,
   children,
 }) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
@@ -42,6 +43,7 @@ export default function AppLayout({
         page={page}
         user={user}
         onLogout={onLogout}
+        loggingOut={loggingOut}
         onNavigate={onNavigate}
         onClose={() => setMobileNavOpen(false)}
         mobileOpen={mobileNavOpen}

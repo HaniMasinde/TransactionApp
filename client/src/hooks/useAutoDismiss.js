@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 
-export default function useAutoDismiss(message, clearMessage, delay = 5000) {
+export default function useAutoDismiss(message, clearMessage, delay = 3000) {
   useEffect(() => {
     if (!message) return undefined
 

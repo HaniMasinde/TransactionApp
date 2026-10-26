@@ -1,8 +1,12 @@
 
 import { useCallback, useEffect, useState } from 'react'
-import { Info, RefreshCw, UsersRound, UserRoundCheck, WalletCards } from 'lucide-react'
+import { Activity, Info, RefreshCw, UsersRound, UserRoundCheck, WalletCards } from 'lucide-react'
 import {
+  decideRoleRemovalRequest,
+  getTechnicalAdminActivityStats,
+  getRoleRemovalRequests,
   getTechnicalAdminUsers,
+  sendAppUpdateAnnouncement,
   updateUserRole,
 } from '../services/technicalAdminService.js'
 import useAutoDismiss from '../hooks/useAutoDismiss.js'
@@ -15,6 +19,17 @@ const assignableRoles = [
   { value: 'secretary', label: 'Secretary' },
 ]
 const roleOrder = ['technical_admin', 'chairperson', 'secretary', 'treasurer', 'member']
+const activityLabels = {
+  registrations: 'Registrations',
+  logins: 'Logins',
+  password_resets: 'Password resets',
+  picture_uploads: 'Profile picture uploads',
+  transaction_recordings: 'Transaction recordings',
+  reversal_requests: 'Reversal requests',
+  report_generations: 'Report generations',
+  logouts: 'Logouts',
+  account_deletions: 'Account deletions',
+}
 
 export default function TechnicalAdminPage({ user: currentUser }) {
   const [users, setUsers] = useState([])
@@ -24,6 +39,15 @@ export default function TechnicalAdminPage({ user: currentUser }) {
   const [notice, setNotice] = useState('')
   const [selectedRoles, setSelectedRoles] = useState({})
   const [pendingRoleChange, setPendingRoleChange] = useState(null)
+  const [announcementTitle, setAnnouncementTitle] = useState('')
+  const [announcementMessage, setAnnouncementMessage] = useState('')
+  const [sendingAnnouncement, setSendingAnnouncement] = useState(false)
+  const [activityStats, setActivityStats] = useState([])
+  const [activityLoading, setActivityLoading] = useState(true)
+  const [activityError, setActivityError] = useState('')
+  const [roleRemovalRequests, setRoleRemovalRequests] = useState([])
+  const [roleRemovalLoading, setRoleRemovalLoading] = useState(true)
+  const [roleRemovalBusyId, setRoleRemovalBusyId] = useState('')
 
   useAutoDismiss(error, setError)
   useAutoDismiss(notice, setNotice)
@@ -71,9 +95,43 @@ export default function TechnicalAdminPage({ user: currentUser }) {
     }
   }, [])
 
+  const loadActivityStats = useCallback(async () => {
+    setActivityLoading(true)
+    setActivityError('')
+
+    try {
+      const result = await getTechnicalAdminActivityStats()
+      setActivityStats(result.stats)
+    } catch (err) {
+      setActivityError(err.message || 'Unable to load application activity stats.')
+    } finally {
+      setActivityLoading(false)
+    }
+  }, [])
+
+  const loadRoleRemovalRequests = useCallback(async () => {
+    setRoleRemovalLoading(true)
+    setError('')
+    try {
+      setRoleRemovalRequests(await getRoleRemovalRequests())
+    } catch (err) {
+      setError(err.message || 'Unable to load official role-removal requests.')
+    } finally {
+      setRoleRemovalLoading(false)
+    }
+  }, [])
+
   useEffect(() => {
     loadUsers()
   }, [loadUsers])
+
+  useEffect(() => {
+    loadActivityStats()
+  }, [loadActivityStats])
+
+  useEffect(() => {
+    loadRoleRemovalRequests()
+  }, [loadRoleRemovalRequests])
 
   async function handleSave(user) {
     if (user.id === currentUser?.id) return
@@ -83,6 +141,45 @@ export default function TechnicalAdminPage({ user: currentUser }) {
     if (!nextRole || nextRole === user.role) return
 
     setPendingRoleChange({ user, nextRole })
+  }
+
+  async function handleSendAnnouncement(event) {
+    event.preventDefault()
+    setError('')
+    setNotice('')
+    setSendingAnnouncement(true)
+
+    try {
+      const result = await sendAppUpdateAnnouncement({
+        title: announcementTitle.trim(),
+        message: announcementMessage.trim(),
+      })
+      setAnnouncementTitle('')
+      setAnnouncementMessage('')
+      setNotice(
+        `${result.message || 'App update announcement sent.'} ${result.recipientCount} approved account${result.recipientCount === 1 ? '' : 's'} notified.`,
+      )
+    } catch (err) {
+      setError(err.message || 'Unable to send the app update announcement.')
+    } finally {
+      setSendingAnnouncement(false)
+    }
+  }
+
+  async function handleRoleRemovalDecision(request, decision) {
+    setRoleRemovalBusyId(request.id)
+    setError('')
+    setNotice('')
+    try {
+      const result = await decideRoleRemovalRequest(request.id, decision)
+      setRoleRemovalRequests(current => current.filter(item => item.id !== request.id))
+      setNotice(result.message || 'Role-removal request reviewed.')
+      if (decision === 'approved') await loadUsers()
+    } catch (err) {
+      setError(err.message || 'Unable to review the role-removal request.')
+    } finally {
+      setRoleRemovalBusyId('')
+    }
   }
 
   function cancelRoleChange() {
@@ -227,6 +324,168 @@ export default function TechnicalAdminPage({ user: currentUser }) {
           </section>
         </div>
       )}
+
+      <section className="technical-admin-announcement-card" aria-labelledby="role-removal-requests-title">
+        <div className="technical-admin-table-heading">
+          <div>
+            <h2 id="role-removal-requests-title">Official role-removal requests</h2>
+            <p>Review requests from chairpersons, secretaries, and treasurers who want to step down.</p>
+          </div>
+          <button
+            type="button"
+            className="button button-secondary technical-admin-stats-refresh"
+            onClick={loadRoleRemovalRequests}
+            disabled={roleRemovalLoading}
+          >
+            <RefreshCw size={15} />
+            {roleRemovalLoading ? 'Refreshing…' : 'Refresh'}
+          </button>
+        </div>
+        {roleRemovalLoading ? (
+          <p className="technical-admin-role-removal-state" role="status">Loading role-removal requests…</p>
+        ) : roleRemovalRequests.length === 0 ? (
+          <p className="technical-admin-role-removal-state">There are no pending role-removal requests.</p>
+        ) : (
+          <div className="technical-admin-role-removal-list">
+            {roleRemovalRequests.map(request => (
+              <article className="technical-admin-role-removal-item" key={request.id}>
+                <div>
+                  <strong>{request.requesterName}</strong>
+                  <span>{request.officeRole}</span>
+                  <p>{request.reason}</p>
+                  {request.requestedAt && (
+                    <small>Submitted {new Date(request.requestedAt).toLocaleString('en-KE')}</small>
+                  )}
+                </div>
+                <div className="technical-admin-role-removal-actions">
+                  <button
+                    type="button"
+                    className="button button-secondary"
+                    disabled={roleRemovalBusyId === request.id}
+                    onClick={() => handleRoleRemovalDecision(request, 'rejected')}
+                  >
+                    Decline
+                  </button>
+                  <button
+                    type="button"
+                    className="button button-primary"
+                    disabled={roleRemovalBusyId === request.id}
+                    onClick={() => handleRoleRemovalDecision(request, 'approved')}
+                  >
+                    {roleRemovalBusyId === request.id ? 'Reviewing…' : 'Approve step-down'}
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section className="technical-admin-announcement-card" aria-labelledby="technical-admin-announcement-title">
+        <div className="technical-admin-table-heading">
+          <div>
+            <h2 id="technical-admin-announcement-title">Announce an upcoming app update</h2>
+            <p>Send an in-app notification to all approved members, treasurers, the secretary, and the chairperson.</p>
+          </div>
+        </div>
+        <form className="technical-admin-announcement-form" onSubmit={handleSendAnnouncement}>
+          <label>
+            Announcement title
+            <input
+              value={announcementTitle}
+              onChange={event => setAnnouncementTitle(event.target.value)}
+              minLength={3}
+              maxLength={200}
+              required
+            />
+          </label>
+          <label>
+            Update details
+            <textarea
+              value={announcementMessage}
+              onChange={event => setAnnouncementMessage(event.target.value)}
+              minLength={5}
+              maxLength={2000}
+              rows={5}
+              required
+            />
+          </label>
+          <div className="technical-admin-announcement-footer">
+            <span>Only active, approved accounts in the selected roles will be notified.</span>
+            <button
+              type="submit"
+              className="button button-primary"
+              disabled={
+                sendingAnnouncement ||
+                announcementTitle.trim().length < 3 ||
+                announcementMessage.trim().length < 5
+              }
+            >
+              {sendingAnnouncement ? 'Sending…' : 'Send announcement'}
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <section className="technical-admin-stats-section" aria-labelledby="technical-admin-stats-title">
+        <div className="technical-admin-stats-heading">
+          <div>
+            <p className="eyebrow">APPLICATION ACTIVITY</p>
+            <h2 id="technical-admin-stats-title">Operational stats</h2>
+            <p>Successful and failed requests from the last 30 days.</p>
+          </div>
+          <button
+            type="button"
+            className="button button-secondary technical-admin-stats-refresh"
+            onClick={loadActivityStats}
+            disabled={activityLoading}
+          >
+            <RefreshCw size={15} />
+            {activityLoading ? 'Refreshing…' : 'Refresh stats'}
+          </button>
+        </div>
+
+        {activityLoading ? (
+          <div className="technical-admin-stats-state" role="status" aria-live="polite">
+            <span className="technical-admin-stats-spinner" aria-hidden="true" />
+            Loading application activity stats…
+          </div>
+        ) : activityError ? (
+          <div className="technical-admin-stats-state technical-admin-stats-error" role="alert">
+            <p>{activityError}</p>
+            <button
+              type="button"
+              className="button button-secondary"
+              onClick={loadActivityStats}
+            >
+              Try again
+            </button>
+          </div>
+        ) : activityStats.every(stat => stat.total === 0) ? (
+          <div className="technical-admin-stats-state technical-admin-stats-empty">
+            <Activity size={24} aria-hidden="true" />
+            <strong>No activity recorded yet</strong>
+            <span>Stats will appear as users perform these actions.</span>
+          </div>
+        ) : (
+          <div className="technical-admin-stats-grid">
+            {activityStats.map(stat => (
+              <article className="technical-admin-activity-card" key={stat.event_type}>
+                <span>{activityLabels[stat.event_type] || stat.event_type}</span>
+                <strong>{stat.total}</strong>
+                <div>
+                  <span className="technical-admin-activity-success">
+                    {stat.successful} successful
+                  </span>
+                  <span className="technical-admin-activity-errors">
+                    {stat.errors} errors
+                  </span>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
 
       {loading ? (
         <p aria-live="polite">Loading approved users…</p>

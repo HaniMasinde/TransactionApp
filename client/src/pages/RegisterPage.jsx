@@ -4,6 +4,7 @@ import { registerAccount } from '../services/authService.js'
 import AuthLayout from '../components/AuthLayout.jsx'
 import PasswordInput from '../components/PasswordInput.jsx'
 import useAutoDismiss from '../hooks/useAutoDismiss.js'
+import { isKenyanMobilePhone } from '../utils/phoneNumber.js'
 
 export default function RegisterPage({ onLogin, onHome }) {
   const [fullName, setFullName] = useState('')
@@ -28,6 +29,11 @@ export default function RegisterPage({ onLogin, onHome }) {
     event.preventDefault()
     setError('')
     setSuccess('')
+
+    if (!isKenyanMobilePhone(phone)) {
+      setError('Enter a valid Kenyan mobile number, such as 0712 345 678 or +254 712 345 678.')
+      return
+    }
 
     if (password !== confirmPassword) {
       setError('The passwords do not match.')
@@ -92,9 +98,11 @@ export default function RegisterPage({ onLogin, onHome }) {
             name="phone"
             type="tel"
             autoComplete="tel"
-            placeholder="Enter your phone number"
+            inputMode="tel"
+            placeholder="0712 345 678 or +254 712 345 678"
             value={phone}
             onChange={event => setPhone(event.target.value)}
+            maxLength={24}
             required
           />
 
@@ -155,6 +163,7 @@ export default function RegisterPage({ onLogin, onHome }) {
               {success}
             </p>
           )}
+          {submitting && <p className="auth-status" role="status">Submitting your registration…</p>}
 
           <button
             className="primary-button auth-submit"

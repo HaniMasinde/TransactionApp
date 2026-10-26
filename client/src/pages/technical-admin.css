@@ -152,6 +152,362 @@
   box-shadow: 0 6px 22px rgb(43 69 132 / 3%);
 }
 
+.technical-admin-announcement-card {
+  margin-bottom: 25px;
+  overflow: hidden;
+  border: 1px solid var(--admin-border);
+  border-radius: 23px;
+  background: #fff;
+  box-shadow: 0 6px 22px rgb(43 69 132 / 3%);
+}
+
+.technical-admin-announcement-card .technical-admin-table-heading {
+  display: block;
+  min-height: 0;
+  padding-bottom: 8px;
+}
+
+.technical-admin-announcement-card .technical-admin-table-heading p {
+  margin: 7px 0 0;
+  color: var(--admin-muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.technical-admin-role-removal-state {
+  margin: 0;
+  padding: 15px 28px 23px;
+  color: var(--admin-muted);
+  font-size: 13px;
+}
+
+.technical-admin-role-removal-list {
+  display: grid;
+  gap: 12px;
+  padding: 14px 28px 26px;
+}
+
+.technical-admin-role-removal-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 17px;
+  border: 1px solid var(--admin-border);
+  border-radius: 14px;
+  background: #f9fbff;
+}
+
+.technical-admin-role-removal-item > div:first-child {
+  display: grid;
+  gap: 6px;
+}
+
+.technical-admin-role-removal-item strong {
+  color: var(--admin-text);
+  font-size: 14px;
+}
+
+.technical-admin-role-removal-item > div:first-child > span {
+  width: fit-content;
+  padding: 4px 8px;
+  border-radius: 99px;
+  color: #334c91;
+  background: #edf2ff;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.technical-admin-role-removal-item p {
+  margin: 3px 0;
+  color: var(--admin-text);
+  font-size: 13px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+.technical-admin-role-removal-item small {
+  color: var(--admin-muted);
+  font-size: 11px;
+}
+
+.technical-admin-role-removal-actions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 8px;
+}
+
+.technical-admin-role-removal-actions .button {
+  min-height: 38px;
+  padding: 0 12px;
+  border-radius: 10px;
+  font-size: 12px;
+}
+
+.app-shell[data-theme='dark'][data-page='technicalAdmin'] .technical-admin-role-removal-item {
+  border-color: #2a3850;
+  background: #1b2a40;
+}
+
+.app-shell[data-theme='dark'][data-page='technicalAdmin'] .technical-admin-role-removal-item > div:first-child > span {
+  color: #c7d6ff;
+  background: #263958;
+}
+
+.technical-admin-announcement-form {
+  display: grid;
+  gap: 18px;
+  padding: 16px 28px 26px;
+}
+
+.technical-admin-announcement-form label {
+  display: grid;
+  gap: 8px;
+  color: var(--admin-text);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.technical-admin-announcement-form input,
+.technical-admin-announcement-form textarea {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--admin-border);
+  border-radius: 11px;
+  outline: none;
+  color: var(--admin-text);
+  background: #fff;
+  font: inherit;
+  font-size: 13px;
+}
+
+.technical-admin-announcement-form input {
+  min-height: 44px;
+}
+
+.technical-admin-announcement-form textarea {
+  min-height: 120px;
+  resize: vertical;
+  line-height: 1.6;
+}
+
+.technical-admin-announcement-form input:focus,
+.technical-admin-announcement-form textarea:focus {
+  border-color: #6b8df1;
+  outline: 3px solid rgb(36 81 220 / 12%);
+}
+
+.technical-admin-announcement-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.technical-admin-announcement-footer > span {
+  color: var(--admin-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.technical-admin-stats-section {
+  margin-bottom: 26px;
+}
+
+.technical-admin-stats-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.technical-admin-stats-heading .eyebrow {
+  margin: 0 0 5px;
+  color: #4f69a3;
+}
+
+.technical-admin-stats-heading h2 {
+  margin: 0;
+  color: var(--admin-text);
+  font-family: 'Manrope', sans-serif;
+  font-size: 21px;
+  font-weight: 800;
+}
+
+.technical-admin-stats-heading p:last-child {
+  margin: 5px 0 0;
+  color: var(--admin-muted);
+  font-size: 13px;
+}
+
+.technical-admin-stats-refresh {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  gap: 8px;
+}
+
+.technical-admin-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.technical-admin-activity-card {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid var(--admin-border);
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 5px 20px rgb(43 69 132 / 3%);
+}
+
+.technical-admin-activity-card > span {
+  color: var(--admin-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.technical-admin-activity-card > strong {
+  color: var(--admin-blue-dark);
+  font-family: 'Manrope', sans-serif;
+  font-size: 30px;
+  line-height: 1;
+}
+
+.technical-admin-activity-card > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  font-size: 11px;
+}
+
+.technical-admin-activity-success {
+  color: #187347;
+}
+
+.technical-admin-activity-errors {
+  color: #a33c3c;
+}
+
+.technical-admin-stats-state {
+  display: flex;
+  min-height: 150px;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px;
+  border: 1px solid var(--admin-border);
+  border-radius: 18px;
+  color: var(--admin-muted);
+  background: #fff;
+  text-align: center;
+  font-size: 13px;
+}
+
+.technical-admin-stats-spinner {
+  width: 19px;
+  height: 19px;
+  border: 2px solid #d8e2fb;
+  border-top-color: var(--admin-blue);
+  border-radius: 50%;
+  animation: technical-admin-spin .8s linear infinite;
+}
+
+@keyframes technical-admin-spin {
+  to { transform: rotate(360deg); }
+}
+
+.technical-admin-stats-error {
+  flex-direction: column;
+  border-color: #f0caca;
+  color: #9e3030;
+  background: #fff8f8;
+}
+
+.technical-admin-stats-error p {
+  margin: 0;
+}
+
+.technical-admin-stats-empty {
+  flex-direction: column;
+}
+
+.technical-admin-stats-empty svg {
+  color: var(--admin-blue);
+}
+
+.technical-admin-stats-empty strong {
+  color: var(--admin-text);
+  font-size: 14px;
+}
+
+.technical-admin-stats-empty span {
+  font-size: 12px;
+}
+
+.app-shell[data-page='technicalAdmin'] .technical-admin-announcement-form .button-primary {
+  min-height: 42px;
+  flex: 0 0 auto;
+  padding: 0 17px;
+  border: 1px solid #315be0;
+  border-radius: 11px;
+  color: #fff;
+  background: #315be0;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.app-shell[data-page='technicalAdmin'] .technical-admin-announcement-form .button-primary:hover:not(:disabled) {
+  border-color: #193fc0;
+  background: #193fc0;
+}
+
+.app-shell[data-theme='dark'][data-page='technicalAdmin'] .technical-admin-announcement-card {
+  border-color: #2a3850;
+  background: #182438;
+}
+
+.app-shell[data-theme='dark'][data-page='technicalAdmin'] .technical-admin-activity-card,
+.app-shell[data-theme='dark'][data-page='technicalAdmin'] .technical-admin-stats-state {
+  border-color: #2a3850;
+  background: #182438;
+}
+
+.app-shell[data-theme='dark'][data-page='technicalAdmin'] .technical-admin-stats-heading .eyebrow {
+  color: #a8b6d2;
+}
+
+.app-shell[data-theme='dark'][data-page='technicalAdmin'] .technical-admin-stats-error {
+  border-color: #70434b;
+  color: #ffc1c9;
+  background: #2a202b;
+}
+
+.app-shell[data-theme='dark'][data-page='technicalAdmin'] .technical-admin-activity-success {
+  color: #75d8a3;
+}
+
+.app-shell[data-theme='dark'][data-page='technicalAdmin'] .technical-admin-activity-errors {
+  color: #ff9d9d;
+}
+
+.app-shell[data-theme='dark'][data-page='technicalAdmin'] .technical-admin-announcement-form input,
+.app-shell[data-theme='dark'][data-page='technicalAdmin'] .technical-admin-announcement-form textarea {
+  border-color: #374a68;
+  color: #e5ebf8;
+  background: #1b2a40;
+}
+
+.app-shell[data-theme='dark'][data-page='technicalAdmin'] .technical-admin-announcement-form input:focus,
+.app-shell[data-theme='dark'][data-page='technicalAdmin'] .technical-admin-announcement-form textarea:focus {
+  border-color: #7895ff;
+}
+
 .technical-admin-table-heading {
   display: flex;
   min-height: 75px;
@@ -222,6 +578,36 @@
   .technical-admin-overview { gap: 13px; }
   .technical-admin-stat-card { min-height: 175px; padding: 19px; }
   .technical-admin-stat-card > strong { font-size: 31px; }
+  .technical-admin-stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 600px) {
+  .technical-admin-announcement-form {
+    padding: 14px 18px 20px;
+  }
+
+  .technical-admin-stats-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .technical-admin-stats-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .technical-admin-announcement-footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .technical-admin-role-removal-item {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .technical-admin-role-removal-actions {
+    justify-content: flex-end;
+  }
 }
 
 @media (max-width: 680px) {

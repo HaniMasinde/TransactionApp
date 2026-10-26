@@ -1,13 +1,21 @@
 import { useEffect, useMemo, useState } from 'react'
 import PageHeader from '../components/PageHeader.jsx'
 import TransactionTable from '../components/TransactionTable.jsx'
-import { createTransaction, getTransactions, reverseTransaction } from '../services/transactionService.js'
+import {
+  createTransaction,
+  decideTransactionReversal,
+  getTransactionReversalRequests,
+  getTransactions,
+  reverseTransaction,
+} from '../services/transactionService.js'
+import { formatCurrency } from '../utils/formatCurrency.js'
 import { getMembers } from '../services/memberService.js'
 import useAutoDismiss from '../hooks/useAutoDismiss.js'
 
 export default function TransactionsPage({ user }) {
   const [search, setSearch] = useState('')
   const [transactions, setTransactions] = useState([])
+  const [reversalRequests, setReversalRequests] = useState([])
   const [members, setMembers] = useState([])
   const [selectedMemberId, setSelectedMemberId] = useState('')
   const [amount, setAmount] = useState('')
@@ -16,6 +24,9 @@ export default function TransactionsPage({ user }) {
   const [reversalReason, setReversalReason] = useState('')
   const [loading, setLoading] = useState(true)
   const [membersLoading, setMembersLoading] = useState(false)
+  const [reversalRequestsLoading, setReversalRequestsLoading] = useState(true)
+  const [reversalBusyId, setReversalBusyId] = useState('')
+  const [reversalBusyAction, setReversalBusyAction] = useState('')
   const [saving, setSaving] = useState(false)
   const [reversing, setReversing] = useState(false)
   const [error, setError] = useState('')
@@ -26,6 +37,10 @@ export default function TransactionsPage({ user }) {
 
   const role = String(user?.role || '').toLowerCase().replace(/\s+/g, '')
   const canRecordPayment = role === 'treasurer'
+  const isMember = role === 'member'
+  const reversalApprovalRequired =
+    transactionToReverse?.reversal_approval_required === true
+  const reversalReasonRequired = isMember || reversalApprovalRequired
 
   async function reloadTransactions() {
     const result = await getTransactions({ limit: 100 })
@@ -58,6 +73,21 @@ export default function TransactionsPage({ user }) {
         .finally(() => {
           if (active) setMembersLoading(false)
         })
+
+      getTransactionReversalRequests()
+        .then(result => {
+          if (active) setReversalRequests(result)
+        })
+        .catch(requestError => {
+          if (active) {
+            setError(requestError.message || 'Unable to load member reversal requests.')
+          }
+        })
+        .finally(() => {
+          if (active) setReversalRequestsLoading(false)
+        })
+    } else {
+      setReversalRequestsLoading(false)
     }
 
     return () => {
@@ -112,15 +142,34 @@ export default function TransactionsPage({ user }) {
     setReversing(true)
 
     try {
-      await reverseTransaction(transactionToReverse.id, reversalReason.trim())
+      const result = await reverseTransaction(transactionToReverse.id, reversalReason.trim())
       await reloadTransactions()
       setTransactionToReverse(null)
       setReversalReason('')
-      setSuccess('Transaction reversed successfully.')
+      setSuccess(result.message || 'Transaction reversal completed.')
     } catch (requestError) {
       setError(requestError.message || 'Unable to reverse this transaction.')
     } finally {
       setReversing(false)
+    }
+  }
+
+  async function decideMemberReversalRequest(request, decision) {
+    setReversalBusyId(request.id)
+    setReversalBusyAction(decision)
+    setError('')
+    setSuccess('')
+
+    try {
+      const result = await decideTransactionReversal(request.id, decision)
+      setReversalRequests(current => current.filter(item => item.id !== request.id))
+      await reloadTransactions()
+      setSuccess(result.message || 'Member reversal request reviewed.')
+    } catch (requestError) {
+      setError(requestError.message || 'Unable to review the member reversal request.')
+    } finally {
+      setReversalBusyId('')
+      setReversalBusyAction('')
     }
   }
 
@@ -216,6 +265,57 @@ export default function TransactionsPage({ user }) {
           </form>
         </section>
       )}
+      {canRecordPayment && (
+        <section className="content-card">
+          <div className="card-heading">
+            <div>
+              <h2>Member reversal requests</h2>
+              <p>Review the member’s reason. Requests older than 12 hours need chairperson approval after you approve them.</p>
+            </div>
+          </div>
+          {reversalRequestsLoading ? (
+            <p>Loading member reversal requests…</p>
+          ) : reversalRequests.length === 0 ? (
+            <p className="empty-state">There are no pending member reversal requests.</p>
+          ) : (
+            <section className="approval-grid">
+              {reversalRequests.map(request => (
+                <article className="content-card approval-card" key={request.id}>
+                  <b>{request.requested_by_name} requested a reversal</b>
+                  <p>
+                    {request.entered_member_name} · {formatCurrency(request.amount)}
+                    {request.mpesa_reference ? ` · ${request.mpesa_reference}` : ''}
+                  </p>
+                  <div className="deletion-request-reason">
+                    <span>MEMBER’S REASON</span>
+                    <p>{request.reason}</p>
+                  </div>
+                  <div className="approval-actions">
+                    <button
+                      className="secondary-button"
+                      type="button"
+                      disabled={reversalBusyId === request.id}
+                      onClick={() => decideMemberReversalRequest(request, 'rejected')}
+                    >
+                      {reversalBusyId === request.id && reversalBusyAction === 'rejected' ? 'Rejecting…' : 'Reject'}
+                    </button>
+                    <button
+                      className="primary-button"
+                      type="button"
+                      disabled={reversalBusyId === request.id}
+                      onClick={() => decideMemberReversalRequest(request, 'approved')}
+                    >
+                      {reversalBusyId === request.id && reversalBusyAction === 'approved'
+                        ? 'Approving…'
+                        : request.approval_required ? 'Approve and forward' : 'Approve reversal'}
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </section>
+          )}
+        </section>
+      )}
       <section className="content-card">
         <div className="toolbar">
           <input
@@ -230,6 +330,7 @@ export default function TransactionsPage({ user }) {
           <TransactionTable
             rows={results}
             canReverse={canRecordPayment}
+            canRequestReversal={isMember}
             onReverse={openReversal}
           />
         )}
@@ -242,22 +343,35 @@ export default function TransactionsPage({ user }) {
             aria-modal="true"
             aria-labelledby="transaction-reversal-title"
           >
-            <h2 id="transaction-reversal-title">Reverse transaction</h2>
+            <h2 id="transaction-reversal-title">
+              {isMember
+                ? 'Request transaction reversal'
+                : reversalApprovalRequired ? 'Request reversal approval' : 'Reverse transaction'}
+            </h2>
             <p>
-              Reverse the payment recorded for {transactionToReverse.entered_member_name}?
-              This action will be recorded in the audit log.
+              {isMember
+                ? 'Your request and reason will be sent to the treasurer for review.'
+                : reversalApprovalRequired
+                ? `This payment for ${transactionToReverse.entered_member_name} was recorded more than 12 hours ago. The chairperson must approve the request before it can be reversed.`
+                : `Reverse the payment recorded for ${transactionToReverse.entered_member_name}? This action will be recorded in the audit log.`}
             </p>
+            {reversalReasonRequired && <p className="password-change-hint">Enter a reason of at least 5 characters.</p>}
             {error && <p className="app-error" role="alert">{error}</p>}
             <form onSubmit={handleReverseTransaction}>
               <label htmlFor="transaction-reversal-reason">
-                Reason for reversal
+                {isMember
+                  ? 'Reason for reversal request'
+                  : reversalApprovalRequired
+                    ? 'Reason for approval request'
+                    : 'Reason for reversal (optional)'}
                 <textarea
                   id="transaction-reversal-reason"
                   value={reversalReason}
                   onChange={event => setReversalReason(event.target.value)}
+                  minLength={reversalReasonRequired ? 5 : undefined}
                   maxLength={1000}
                   rows={4}
-                  required
+                  required={reversalReasonRequired}
                 />
               </label>
               <div className="transaction-reversal-actions">
@@ -269,8 +383,14 @@ export default function TransactionsPage({ user }) {
                 >
                   Cancel
                 </button>
-                <button className="transaction-reverse-button" type="submit" disabled={reversing || !reversalReason.trim()}>
-                  {reversing ? 'Reversing…' : 'Confirm reversal'}
+                <button
+                  className="transaction-reverse-button"
+                  type="submit"
+                  disabled={reversing || (reversalReasonRequired && reversalReason.trim().length < 5)}
+                >
+                  {reversing
+                    ? reversalApprovalRequired ? 'Sending request…' : 'Reversing…'
+                    : reversalApprovalRequired ? 'Send approval request' : 'Confirm reversal'}
                 </button>
               </div>
             </form>
