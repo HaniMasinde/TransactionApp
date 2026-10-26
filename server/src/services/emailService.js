@@ -75,10 +75,11 @@ async function sendEmailVerificationCode(email, code) {
 }
 
 
+
 async function sendPasswordResetEmail(email, resetUrl) {
   const transporter = createTransporter();
 
-  await transporter.sendMail({
+  const info = await transporter.sendMail({
     from: getEmailFrom(),
     to: email,
     subject: "Reset your GCMS password",
@@ -97,7 +98,30 @@ async function sendPasswordResetEmail(email, resetUrl) {
       <p>If you did not request this, you can ignore this email.</p>
     `,
   });
+
+  console.log("GCMS password-reset email delivery result:", {
+    accepted: info.accepted,
+    rejected: info.rejected,
+    response: info.response,
+    messageId: info.messageId,
+  });
+
+  const accepted = (info.accepted || []).some((recipient) => {
+    const address =
+      typeof recipient === "string"
+        ? recipient
+        : recipient.address;
+
+    return address?.toLowerCase() === email.toLowerCase();
+  });
+
+  if (!accepted) {
+    throw new Error(
+      "SMTP server did not accept the password-reset email."
+    );
+  }
 }
+
 
 module.exports = {
   sendPasswordResetEmail,
