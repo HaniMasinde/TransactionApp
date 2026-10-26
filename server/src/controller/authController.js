@@ -7,6 +7,7 @@ const passwordRecoveryService = require("../services/passwordRecoveryService");
 function getRegistrationFields(body) {
   return {
     fullName: body.fullName ?? body.full_name ?? body.name,
+    username: body.username,
     phone: body.phone,
     recoveryEmail: body.recoveryEmail ?? body.recovery_email ?? body.email,
     password: body.password,
@@ -78,7 +79,8 @@ async function register(req, res, next) {
 async function login(req, res, next) {
   try {
     const user = await authService.login({
-      phone: req.body.phone ?? req.body.phoneNumber ?? req.body.phone_number,
+      username: req.body.username,
+      phone: req.body.phone,
       password: req.body.password,
     });
 

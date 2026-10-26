@@ -352,9 +352,10 @@ export default function AccountPage({ user, onAccountUpdated }) {
                 maxLength={30}
                 pattern="[A-Za-z0-9_]{3,30}"
                 placeholder="Choose a username"
+                required
               />
             </label>
-            <p className="password-change-hint">Optional for now. Use 3–30 letters, numbers, or underscores. Usernames are reserved for future sign-in.</p>
+            <p className="password-change-hint">Use 3–30 letters, numbers, or underscores. Usernames are case-insensitive and can be used to sign in.</p>
 
             <label htmlFor="account-phone">
               Phone number

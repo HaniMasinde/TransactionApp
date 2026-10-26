@@ -6,6 +6,7 @@ import PasswordInput from '../components/PasswordInput.jsx'
 import useAutoDismiss from '../hooks/useAutoDismiss.js'
 
 export default function LoginPage({ onLogin, onRegister, onForgotPassword, onHome }) {
+  const [username, setUsername] = useState('')
   const [phone, setPhone] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -19,7 +20,7 @@ export default function LoginPage({ onLogin, onRegister, onForgotPassword, onHom
     setSubmitting(true)
 
     try {
-      await onLogin(phone.trim(), password)
+      await onLogin(username.trim(), phone.trim(), password)
     } catch (err) {
       setError(
         err.message ||
@@ -38,6 +39,22 @@ export default function LoginPage({ onLogin, onRegister, onForgotPassword, onHom
       onHome={onHome}
     >
       <form className="auth-form" onSubmit={handleSubmit}>
+          <label htmlFor="login-username">Username</label>
+          <span className="auth-input-icon-wrap">
+            <input
+              id="login-username"
+              name="username"
+              type="text"
+              autoComplete="username"
+              placeholder="Enter your username"
+              value={username}
+              onChange={event => setUsername(event.target.value)}
+              minLength={3}
+              maxLength={30}
+              required
+            />
+          </span>
+
           <label htmlFor="login-phone">Phone number</label>
           <span className="auth-input-icon-wrap">
             <Smartphone className="auth-input-icon" size={18} aria-hidden="true" />
@@ -46,6 +63,7 @@ export default function LoginPage({ onLogin, onRegister, onForgotPassword, onHom
               name="phone"
               type="tel"
               autoComplete="tel"
+              inputMode="tel"
               placeholder="Enter your registered phone number"
               value={phone}
               onChange={event => setPhone(event.target.value)}

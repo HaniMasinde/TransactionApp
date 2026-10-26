@@ -247,7 +247,6 @@ router.put(
 router.patch("/me", requireAuth, async (req, res, next) => {
   const body = req.body || {};
   const fullName = typeof body.fullName === "string" ? body.fullName.trim() : "";
-  const hasUsername = Object.prototype.hasOwnProperty.call(body, "username");
   const usernameInput = typeof body.username === "string"
     ? body.username.trim().toLowerCase()
     : "";
@@ -265,11 +264,8 @@ router.patch("/me", requireAuth, async (req, res, next) => {
   }
 
   if (
-    hasUsername &&
-    body.username !== null &&
-    body.username !== "" &&
-    (typeof body.username !== "string" ||
-      !/^[a-z0-9_]{3,30}$/.test(usernameInput))
+    typeof body.username !== "string" ||
+    !/^[a-z0-9_]{3,30}$/.test(usernameInput)
   ) {
     return res.status(400).json({
       success: false,
@@ -315,9 +311,6 @@ router.patch("/me", requireAuth, async (req, res, next) => {
     }
 
     const oldAccount = oldResult.rows[0];
-    const username = hasUsername
-      ? usernameInput || null
-      : oldAccount.username;
     const updatedResult = await client.query(
       `UPDATE users
        SET full_name = $1,
@@ -333,7 +326,7 @@ router.patch("/me", requireAuth, async (req, res, next) => {
                  profile_picture_updated_at`,
       [
         fullName,
-        username,
+        usernameInput,
         phone,
         phone,
         recoveryEmail,

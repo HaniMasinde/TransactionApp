@@ -12,6 +12,7 @@ import { isKenyanMobilePhone } from '../utils/phoneNumber.js'
 
 export default function RegisterPage({ onLogin, onHome }) {
   const [fullName, setFullName] = useState('')
+  const [username, setUsername] = useState('')
   const [phone, setPhone] = useState('')
   const [recoveryEmail, setRecoveryEmail] = useState('')
   const [verificationCode, setVerificationCode] = useState('')
@@ -122,6 +123,11 @@ async function handleVerifyCode() {
       return
     }
 
+    if (!/^[a-zA-Z0-9_]{3,30}$/.test(username.trim())) {
+      setError('Choose a username with 3–30 letters, numbers, or underscores.')
+      return
+    }
+
     if (password !== confirmPassword) {
       setError('The passwords do not match.')
       return
@@ -141,6 +147,7 @@ async function handleVerifyCode() {
     try {
       const result = await registerAccount({
         fullName: fullName.trim(),
+        username: username.trim(),
         phone: phone.trim(),
         recoveryEmail: recoveryEmail.trim(),
         password,
@@ -151,6 +158,7 @@ async function handleVerifyCode() {
           'Registration submitted. Your account may require group approval before you can sign in.',
       )
       setFullName('')
+      setUsername('')
       setPhone('')
       setRecoveryEmail('')
       setPassword('')
@@ -182,6 +190,24 @@ async function handleVerifyCode() {
             onChange={event => setFullName(event.target.value)}
             required
           />
+
+          <label htmlFor="register-username">Username</label>
+          <input
+            id="register-username"
+            name="username"
+            type="text"
+            autoComplete="username"
+            placeholder="Choose a username"
+            value={username}
+            onChange={event => setUsername(event.target.value)}
+            minLength={3}
+            maxLength={30}
+            pattern="[A-Za-z0-9_]{3,30}"
+            required
+          />
+          <p className="password-requirements">
+            Use 3–30 letters, numbers, or underscores. Usernames are case-insensitive.
+          </p>
 
           <label htmlFor="register-phone">Phone number</label>
           <input

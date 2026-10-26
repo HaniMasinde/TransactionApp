@@ -25,7 +25,7 @@ Set these variables in the API server's environment (`server/.env` for local dev
 
 Email verification also requires migration `016_email_verification_codes.sql`; run `npm run db:migrate` against the deployed database before using registration.
 
-Usernames can be set or changed in Account settings and are stored case-insensitively; they are not accepted for login yet. Apply migration `017_usernames.sql` with `npm run db:migrate` before deploying the username-enabled API.
+Registration requires a unique username. Sign-in requires the account's username, registered phone number, and password together. Usernames are case-insensitive and can be changed in Account settings. Existing accounts must set a username in Account settings before signing in with the new flow. Apply migration `017_usernames.sql` with `npm run db:migrate` before deploying the username-enabled API.
 
 ## Profile pictures
 

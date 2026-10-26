@@ -87,8 +87,8 @@ export default function App() {
     }
   }, [])
 
-  async function handleLogin(phone, password) {
-    const signedInUser = await login(phone, password)
+  async function handleLogin(username, phone, password) {
+    const signedInUser = await login(username, phone, password)
     setUser(signedInUser)
     setPage(defaultPageFor(signedInUser))
     setAppError('')

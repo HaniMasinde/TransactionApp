@@ -3,7 +3,6 @@
 const { isTechnicalAdminPassword } = require("../utils/passwordPolicy");
 const { isKenyanMobilePhone } = require("../utils/phoneNumber");
 
-const PHONE_RE = /^\+?[0-9]{9,15}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function rejectUnknownFields(body, allowed) {
@@ -27,12 +26,13 @@ function firstValue(body, names) {
 function validateRegistration(body) {
   const unknown = rejectUnknownFields(body, [
     "fullName", "full_name", "name",
-    "phone", "recoveryEmail", "recovery_email", "email",
+    "username", "phone", "recoveryEmail", "recovery_email", "email",
     "password"
   ]);
   if (unknown) return unknown;
 
   const name = firstValue(body, ["fullName", "full_name", "name"]);
+  const username = body.username;
   const phone = body.phone;
   const email = firstValue(body, [
     "recoveryEmail", "recovery_email", "email"
@@ -41,6 +41,13 @@ function validateRegistration(body) {
 
   if (typeof name !== "string" || name.trim().length < 2 || name.trim().length > 120) {
     return "Full name must be between 2 and 120 characters";
+  }
+
+  if (
+    typeof username !== "string" ||
+    !/^[a-zA-Z0-9_]{3,30}$/.test(username.trim())
+  ) {
+    return "Username must be 3 to 30 characters using letters, numbers, or underscores";
   }
 
   if (!isKenyanMobilePhone(phone)) {
@@ -71,16 +78,22 @@ function validateRegistration(body) {
 }
 
 function validateLogin(body) {
-  const unknown = rejectUnknownFields(body, [
-    "phone", "phoneNumber", "phone_number", "password"
-  ]);
+  const unknown = rejectUnknownFields(body, ["username", "phone", "password"]);
   if (unknown) return unknown;
 
-  const phone = firstValue(body, ["phone", "phoneNumber", "phone_number"]);
+  const username = body.username;
+  const phone = body.phone;
   const password = body.password;
 
-  if (typeof phone !== "string" || !PHONE_RE.test(phone.trim())) {
-    return "Enter a valid phone number";
+  if (
+    typeof username !== "string" ||
+    !/^[a-zA-Z0-9_]{3,30}$/.test(username.trim())
+  ) {
+    return "Enter your valid username.";
+  }
+
+  if (!isKenyanMobilePhone(phone)) {
+    return "Enter your valid registered phone number.";
   }
 
   if (typeof password !== "string" || password.length < 1 || password.length > 40) {
