@@ -17,6 +17,10 @@ npm run dev
 
 The API listens on `http://localhost:4000`. Client Vite proxies `/api` to this server. Run `npm run db:migrate` after deploying new migrations; the API server does not apply migrations automatically.
 
+## Profile pictures
+
+Authenticated users can upload a profile picture from Account settings. JPEG and PNG files up to 2 MB are accepted, cropped to the user's selected square in the browser, decoded, and normalized to a 512-pixel JPEG before storage in PostgreSQL. Apply migration `010_profile_pictures.sql` before deploying this feature. The API uses `PUT /api/members/me/profile-picture` for uploads and `GET /api/members/me/profile-picture` to retrieve the current user's image.
+
 ## Provision the two administrator accounts
 
 Do not add admin account creation to public registration. Provision both administrators directly through the seed script. Enter the password interactively so it is not placed in shell history:
@@ -50,15 +54,36 @@ The SRS leaves chairperson access to transaction history undecided, so this API 
 
 Members can submit a deletion request with a reason from Account settings. Only the chairperson can approve or decline it, and a reason for the decision is required and recorded in the audit log. On approval, the member profile is anonymized, active sessions are revoked, and all original transaction rows and their member references are retained. Other active, approved accounts receive a dashboard notification containing the deletion action and chairperson's reason. Office holders and Technical Administrators cannot request deletion of their accounts.
 
-Transactions are append-only. Corrections create a separate negative transaction with its own unique M-Pesa code. Unmatched payment names can later be linked to an active member without changing the original payment details. Treasurers' payment actions and chairpersons' account decisions are audit logged. Passwords are bcrypt hashed, sessions expire and can be revoked, and deactivated accounts lose existing sessions.
+Transactions are append-only. Corrections create a separate negative transaction with its own unique M-Pesa code. Unmatched payment names can later be linked to an active member without changing the original payment details. Treasurers' payment actions and chairpersons' account decisions are audit logged. Passwords are bcrypt hashed, sessions expire after 20 minutes of inactivity, and deactivated accounts lose existing sessions. Users receive a warning at 18 minutes to stay signed in or log out.
+
+Treasurers can reverse a transaction within 12 hours of recording it. After that window, migration `011_transaction_reversal_approvals.sql` enables reasoned requests that must be approved by the chairperson from Member approvals before the transaction is reversed.
+
+Members can request reversal of their own contribution with a reason from Transactions. Treasurers review these requests there; an approval reverses transactions within 12 hours, and forwards older transactions to the chairperson for final approval. Migration `012_member_transaction_reversal_requests.sql` adds this two-stage review flow.
+
+When a transaction is recorded, every active approved member receives a notification naming the member whose contribution was recorded. The notification does not include the amount.
+
+Chairpersons must provide a response reason when approving or rejecting a forwarded reversal request. The requester and reviewing treasurer receive the decision and reason; members are notified when a reversal is completed. Broadcast notifications do not include the monetary value. Chairperson response reasons are retained in the audit log and require no additional migration.
+
+Technical Administrators can send an in-app announcement about upcoming app updates to all active, approved members, treasurers, secretaries, and chairpersons. Apply migration `013_app_update_announcements.sql` to allow the announcement notification event.
+
+The Technical Administration page also shows successful and failed operation counts for registrations, logins, password resets, profile picture uploads, transaction recordings, reversal requests, report generations, logouts, and account deletions over the last 30 days. Activity tracking starts after migration `014_application_activity_stats.sql` is applied; request bodies and personal content are not stored in activity events.
+
+Chairpersons, secretaries, and treasurers can submit a reasoned request to step down from their current office in Account settings. The Technical Admin receives a notification and can approve or decline the request; an approved request changes the official's role to member. A chairperson request cannot be approved until another chairperson is in place. Apply migration `015_official_role_removal_requests.sql`.
 
 ## Main routes
 
 - Public: `GET /api/health`, `POST /api/auth/register`, `POST /api/auth/login`, `POST /api/auth/forgot-password`, `POST /api/auth/reset-password`
 - Member: `GET/POST /api/members/me/deletion-request`
+- Authenticated: `GET/PUT /api/members/me/profile-picture`
 - Chairperson: `GET /api/admin/member-deletion-requests`, `PATCH /api/admin/member-deletion-requests/:id`
 - Authenticated: `GET /api/auth/me`, `POST /api/auth/logout`, `GET /api/dashboard`, `GET /api/me/transactions`, `GET/PATCH /api/me/profile`, `DELETE /api/me`
 - Treasurer: `GET/POST /api/transactions`, `POST /api/transactions/:id/corrections`, `PATCH /api/transactions/:id/member-link`, `GET /api/reports/summary`, `GET /api/audit`, `POST /api/admin/roles/transfer-treasurer`
+- Treasurer: `PATCH /api/transactions/:id/reverse` (within 12 hours, or submits a reasoned approval request after the cutoff)
+- Chairperson: `GET /api/transactions/reversal-requests`, `PATCH /api/transactions/reversal-requests/:id`
+- Technical Administrator: `POST /api/technical-admin/announcements` to notify all active, approved members and office holders about upcoming app updates.
+- Technical Administrator: `GET /api/technical-admin/activity-stats` to view 30-day application operation counts.
+- Technical Administrator: `GET /api/technical-admin/role-removal-requests`, `PATCH /api/technical-admin/role-removal-requests/:id`
+- Official: `GET/POST /api/members/me/role-removal-request`
 - Treasurer: `GET/PUT /api/payment-destination` to view or update the group contribution payment number. Approved members can read it with `GET /api/payment-destination`.
 - Treasurer and chairperson: `GET /api/members`
 - Chairperson: `GET /api/admin/registrations/pending`, `POST /api/admin/registrations/:id/decision`, `PATCH /api/admin/members/:id/status`, `POST /api/admin/roles/transfer-chairperson`

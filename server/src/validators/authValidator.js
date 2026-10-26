@@ -1,6 +1,7 @@
 "use strict";
 
 const { isTechnicalAdminPassword } = require("../utils/passwordPolicy");
+const { isKenyanMobilePhone } = require("../utils/phoneNumber");
 
 const PHONE_RE = /^\+?[0-9]{9,15}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -42,8 +43,8 @@ function validateRegistration(body) {
     return "Full name must be between 2 and 120 characters";
   }
 
-  if (typeof phone !== "string" || !PHONE_RE.test(phone.trim())) {
-    return "Enter a valid phone number";
+  if (!isKenyanMobilePhone(phone)) {
+    return "Enter a valid Kenyan mobile number (e.g. 0712 345 678 or +254 712 345 678)";
   }
 
   if (typeof email !== "string" || email.length > 254 || !EMAIL_RE.test(email.trim())) {

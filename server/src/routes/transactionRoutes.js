@@ -78,7 +78,69 @@ function isValidDateRange(startDate, endDate, maxDays = 366) {
   );
 }
 
+async function reverseTransaction(client, {
+  transaction,
+  actorUserId,
+  reason,
+  approvalRequestId = null,
+  excludedMemberUserId = null,
+}) {
+  const result = await client.query(
+    `UPDATE transactions
+     SET status = 'reversed',
+         updated_by = $1,
+         updated_at = NOW()
+     WHERE id = $2
+       AND status = 'active'
+     RETURNING *`,
+    [actorUserId, transaction.id]
+  );
+  const reversedTransaction = result.rows[0];
 
+  if (!reversedTransaction) {
+    const error = new Error("Active transaction not found.");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  await client.query(
+    `INSERT INTO audit_logs (
+       actor_user_id, action, target_type, target_id,
+       old_values, new_values
+     )
+     VALUES ($1, 'transaction_reversed', 'transaction', $2, $3::jsonb, $4::jsonb)`,
+    [
+      actorUserId,
+      transaction.id,
+      JSON.stringify(transaction),
+      JSON.stringify({
+        ...reversedTransaction,
+        reversal_reason: reason,
+        reversal_approval_request_id: approvalRequestId,
+      }),
+    ]
+  );
+
+  await client.query(
+    `INSERT INTO notifications (
+       recipient_user_id, transaction_id, event_type, title, message
+     )
+     SELECT id, $1, 'transaction_updated',
+            'Contribution reversal completed',
+            'A contribution reversal was approved and completed.'
+     FROM users
+     WHERE role = 'member'
+       AND account_status = 'approved'
+       AND deleted_at IS NULL
+       AND ($2::uuid IS NULL OR id <> $2)`,
+    [
+      transaction.id,
+      excludedMemberUserId,
+    ]
+  );
+
+  return reversedTransaction;
+}
 
 // GET /api/transactions
 
@@ -105,24 +167,51 @@ router.get(
 
       if (role === "member") {
         result = await query(
-          `SELECT id, member_user_id, entered_member_name,
-                  amount, paid_at, mpesa_reference, status, notes,
-                  created_at, updated_at
+          `SELECT transactions.id, transactions.member_user_id,
+                  transactions.entered_member_name, transactions.amount,
+                  transactions.paid_at, transactions.mpesa_reference,
+                  transactions.status, transactions.notes,
+                  transactions.created_at, transactions.updated_at,
+                  reversal_request.status AS reversal_request_status,
+                  transactions.created_at < NOW() - INTERVAL '12 hours'
+                    AS reversal_approval_required
            FROM transactions
-           WHERE member_user_id = $1
-             AND status = 'active'
-           ORDER BY paid_at DESC
+           LEFT JOIN LATERAL (
+             SELECT status
+             FROM transaction_reversal_requests
+             WHERE transaction_id = transactions.id
+             ORDER BY created_at DESC
+             LIMIT 1
+           ) reversal_request ON TRUE
+           WHERE transactions.member_user_id = $1
+             AND (
+               transactions.status = 'active'
+               OR reversal_request.status = 'approved'
+             )
+           ORDER BY transactions.paid_at DESC
            LIMIT $2 OFFSET $3`,
           [req.session.user.id, limit, offset]
         );
       } else {
         result = await query(
-          `SELECT id, member_user_id, entered_member_name,
-                  amount, paid_at, mpesa_reference, status, notes,
-                  created_at, updated_at
+          `SELECT transactions.id, transactions.member_user_id,
+                  transactions.entered_member_name, transactions.amount,
+                  transactions.paid_at, transactions.mpesa_reference,
+                  transactions.status, transactions.notes,
+                  transactions.created_at, transactions.updated_at,
+                  reversal_request.status AS reversal_request_status,
+                  transactions.created_at < NOW() - INTERVAL '12 hours'
+                    AS reversal_approval_required
            FROM transactions
-           WHERE status IN ('active', 'reversed')
-           ORDER BY paid_at DESC
+           LEFT JOIN LATERAL (
+             SELECT status
+             FROM transaction_reversal_requests
+             WHERE transaction_id = transactions.id
+             ORDER BY created_at DESC
+             LIMIT 1
+           ) reversal_request ON TRUE
+           WHERE transactions.status IN ('active', 'reversed')
+           ORDER BY transactions.paid_at DESC
            LIMIT $1 OFFSET $2`,
           [limit, offset]
         );
@@ -342,26 +431,26 @@ router.post(
         ]
       );
 
-      // Notify the member only when the transaction is linked to a member account.
-      if (transaction.member_user_id) {
-        await client.query(
-          `INSERT INTO notifications (
-       recipient_user_id,
-       transaction_id,
-       event_type,
-       title,
-       message
-     )
-     VALUES ($1, $2, $3, $4, $5)`,
-          [
-            transaction.member_user_id,
-            transaction.id,
-            "transaction_created",
-            "Contribution recorded",
-            `A contribution of ${transaction.amount} has been recorded for your account.`,
-          ]
-        );
-      }
+      await client.query(
+        `INSERT INTO notifications (
+           recipient_user_id,
+           transaction_id,
+           event_type,
+           title,
+           message
+         )
+         SELECT id, $1, 'transaction_created',
+                'Contribution recorded',
+                $2
+         FROM users
+         WHERE role = 'member'
+           AND account_status = 'approved'
+           AND deleted_at IS NULL`,
+        [
+          transaction.id,
+          `A contribution has been recorded for ${transaction.entered_member_name}.`,
+        ]
+      );
 
       await client.query("COMMIT");
 
@@ -503,7 +592,7 @@ router.patch(
     }
 
     const reason =
-      typeof req.body.reason === "string"
+      typeof req.body?.reason === "string"
         ? req.body.reason.trim()
         : "";
 
@@ -664,7 +753,7 @@ router.patch(
 router.patch(
   "/:id/reverse",
   requireAuth,
-  requireRole("treasurer"),
+  requireRole("member", "treasurer"),
   async (req, res, next) => {
     const { id } = req.params;
 
@@ -679,26 +768,30 @@ router.patch(
     let client;
     try {
       const reason =
-  typeof req.body.reason === "string"
-    ? req.body.reason.trim()
-    : "";
+        typeof req.body?.reason === "string"
+          ? req.body.reason.trim()
+          : "";
 
-      if (!reason || reason.length > 1000) {
+      if (reason.length > 1000) {
         return res.status(400).json({
           success: false,
-          message: "A reason is required and must not exceed 1000 characters.",
+          message: "A reversal reason cannot exceed 1000 characters.",
         });
       }
 
       client = await pool.connect();
       await client.query("BEGIN");
 
+      const role = String(req.session.user.role || "").toLowerCase();
       const existingResult = await client.query(
-        `SELECT *
+        `SELECT *,
+                created_at < NOW() - INTERVAL '12 hours' AS approval_required
          FROM transactions
-         WHERE id = $1 AND status = 'active'
+         WHERE id = $1
+           AND status = 'active'
+           AND ($2 <> 'member' OR member_user_id = $3)
          FOR UPDATE`,
-        [id]
+        [id, role, req.session.user.id]
       );
 
       if (existingResult.rowCount === 0) {
@@ -712,62 +805,144 @@ router.patch(
 
       const oldTransaction = existingResult.rows[0];
 
-      const reversedResult = await client.query(
-        `UPDATE transactions
- SET status = 'reversed',
-     updated_by = $1,
-     updated_at = NOW()
- WHERE id = $2
-   AND status = 'active'
- RETURNING *`,
-        [req.session.user.id, id]
-      );
-
-      const reversedTransaction = reversedResult.rows[0];
-      if (!reversedTransaction) {
+      if (
+        (role === "member" || oldTransaction.approval_required) &&
+        reason.length < 5
+      ) {
         await client.query("ROLLBACK");
-
-        return res.status(404).json({
+        return res.status(400).json({
           success: false,
-          message: "Active transaction not found.",
+          message: "Enter a reason of at least 5 characters.",
         });
       }
 
-      await client.query(
-        `INSERT INTO audit_logs (
-           actor_user_id, action, target_type, target_id,
-           old_values, new_values
-         )
-         VALUES ($1, $2, $3, $4, $5::jsonb, $6::jsonb)`,
-        [
-          req.session.user.id,
-          "transaction_reversed",
-          "transaction",
-          id,
-          JSON.stringify(oldTransaction),
-          JSON.stringify({
-            ...reversedTransaction,
-            reversal_reason: reason,
-          }),
-        ]
-      );
-
-      if (reversedTransaction.member_user_id) {
-        await client.query(
-          `INSERT INTO notifications (
-             recipient_user_id, transaction_id,
-             event_type, title, message
+      if (role === "member") {
+        const requestResult = await client.query(
+          `INSERT INTO transaction_reversal_requests (
+             transaction_id, requested_by, reason, status
            )
-           VALUES ($1, $2, $3, $4, $5)`,
+           VALUES ($1, $2, $3, 'pending_treasurer')
+           ON CONFLICT (transaction_id)
+             WHERE status IN ('pending_treasurer', 'pending_chairperson')
+           DO NOTHING
+           RETURNING id`,
+          [id, req.session.user.id, reason]
+        );
+
+        if (requestResult.rowCount === 0) {
+          await client.query("ROLLBACK");
+          return res.status(409).json({
+            success: false,
+            message: "A reversal request is already under review for this transaction.",
+          });
+        }
+
+        const requestId = requestResult.rows[0].id;
+        await client.query(
+          `INSERT INTO audit_logs (
+             actor_user_id, action, target_type, target_id, new_values
+           )
+           VALUES ($1, 'transaction_reversal_requested', 'transaction', $2, $3::jsonb)`,
           [
-            reversedTransaction.member_user_id,
+            req.session.user.id,
             id,
-            "transaction_updated",
-            "Contribution reversed",
-            `Your contribution of ${reversedTransaction.amount} has been reversed.`,
+            JSON.stringify({ request_id: requestId, reason, status: "pending_treasurer" }),
           ]
         );
+
+        await client.query(
+          `INSERT INTO notifications (
+             recipient_user_id, transaction_id, event_type, title, message
+           )
+           SELECT id, $1, 'transaction_reversal_requested',
+                  'Member reversal request needs review', $2
+           FROM users
+           WHERE role = 'treasurer'
+             AND account_status = 'approved'
+             AND deleted_at IS NULL`,
+          [
+            id,
+            `A member requested reversal of a contribution. Reason: ${reason}`,
+          ]
+        );
+
+        await client.query("COMMIT");
+        return res.status(202).json({
+          success: true,
+          approvalRequired: true,
+          message: "Reversal request submitted to the treasurer for review.",
+          requestId,
+        });
       }
+
+      if (oldTransaction.approval_required) {
+        const requestResult = await client.query(
+          `INSERT INTO transaction_reversal_requests (
+             transaction_id, requested_by, reason, status
+           )
+           VALUES ($1, $2, $3, 'pending_chairperson')
+           ON CONFLICT (transaction_id)
+             WHERE status IN ('pending_treasurer', 'pending_chairperson')
+           DO NOTHING
+           RETURNING id`,
+          [id, req.session.user.id, reason]
+        );
+
+        if (requestResult.rowCount === 0) {
+          await client.query("ROLLBACK");
+          return res.status(409).json({
+            success: false,
+            message: "A reversal approval request is already pending for this transaction.",
+          });
+        }
+
+        const requestId = requestResult.rows[0].id;
+        await client.query(
+          `INSERT INTO audit_logs (
+             actor_user_id, action, target_type, target_id, new_values
+           )
+           VALUES ($1, 'transaction_reversal_requested', 'transaction', $2, $3::jsonb)`,
+          [
+            req.session.user.id,
+            id,
+            JSON.stringify({
+              request_id: requestId,
+              reason,
+              status: "pending_chairperson",
+            }),
+          ]
+        );
+
+        await client.query(
+          `INSERT INTO notifications (
+             recipient_user_id, transaction_id, event_type, title, message
+           )
+           SELECT id, $1, 'transaction_reversal_requested',
+                  'Transaction reversal approval needed', $2
+           FROM users
+           WHERE role = 'chairperson'
+             AND account_status = 'approved'
+             AND deleted_at IS NULL`,
+          [
+            id,
+            `The treasurer requested approval to reverse a transaction. Reason: ${reason}`,
+          ]
+        );
+
+        await client.query("COMMIT");
+        return res.status(202).json({
+          success: true,
+          approvalRequired: true,
+          message: "The transaction is older than 12 hours. Your reasoned reversal request was sent to the chairperson.",
+          requestId,
+        });
+      }
+
+      const reversedTransaction = await reverseTransaction(client, {
+        transaction: oldTransaction,
+        actorUserId: req.session.user.id,
+        reason,
+      });
 
       await client.query("COMMIT");
 
@@ -789,6 +964,255 @@ router.patch(
       if (client) {
         client.release();
       }
+    }
+  }
+);
+
+router.get(
+  "/reversal-requests",
+  requireAuth,
+  requireRole("treasurer", "chairperson"),
+  async (req, res, next) => {
+    try {
+      const role = String(req.session.user.role || "").toLowerCase();
+      const requestStatus = role === "treasurer"
+        ? "pending_treasurer"
+        : "pending_chairperson";
+      const result = await query(
+        `SELECT
+           request.id,
+           request.transaction_id,
+           request.reason,
+           request.created_at,
+           requester.full_name AS requested_by_name,
+           requester.role AS requester_role,
+           t.entered_member_name,
+           t.amount,
+           t.mpesa_reference,
+           t.paid_at,
+           t.created_at < NOW() - INTERVAL '12 hours' AS approval_required
+         FROM transaction_reversal_requests request
+         JOIN users requester ON requester.id = request.requested_by
+         JOIN transactions t ON t.id = request.transaction_id
+         WHERE request.status = $1
+           AND t.status = 'active'
+         ORDER BY request.created_at ASC`
+        ,
+       [requestStatus]
+      );
+
+      return res.status(200).json({
+        success: true,
+        count: result.rowCount,
+        requests: result.rows,
+      });
+    } catch (error) {
+      return next(error);
+    }
+  }
+);
+
+router.patch(
+  "/reversal-requests/:id",
+  requireAuth,
+  requireRole("treasurer", "chairperson"),
+  async (req, res, next) => {
+    const { id } = req.params;
+    const decision = req.body?.decision;
+    const decisionReason =
+      typeof req.body?.reason === "string" ? req.body.reason.trim() : "";
+    const role = String(req.session.user.role || "").toLowerCase();
+
+    if (
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id) ||
+      !["approved", "rejected"].includes(decision)
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Provide a valid request ID and an approved or rejected decision.",
+      });
+    }
+    if (
+      role === "chairperson" &&
+      (decisionReason.length < 5 || decisionReason.length > 1000)
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Enter a response reason of at least 5 characters and no more than 1000 characters.",
+      });
+    }
+
+    let client;
+    try {
+      client = await pool.connect();
+      await client.query("BEGIN");
+
+      const expectedStatus = role === "treasurer"
+        ? "pending_treasurer"
+        : "pending_chairperson";
+      const requestResult = await client.query(
+        `SELECT request.id AS reversal_request_id,
+                request.reason AS reversal_reason,
+                request.requested_by,
+                request.treasurer_reviewed_by,
+                request.transaction_id,
+                t.*,
+                t.created_at < NOW() - INTERVAL '12 hours' AS approval_required
+         FROM transaction_reversal_requests request
+         JOIN transactions t ON t.id = request.transaction_id
+         WHERE request.id = $1
+           AND request.status = $2
+           AND t.status = 'active'
+         FOR UPDATE OF request, t`,
+        [id, expectedStatus]
+      );
+
+      if (requestResult.rowCount === 0) {
+        await client.query("ROLLBACK");
+        return res.status(404).json({
+          success: false,
+          message: "Pending reversal request not found.",
+        });
+      }
+
+      const request = requestResult.rows[0];
+      let reversedTransaction = null;
+      if (decision === "approved") {
+        if (role === "treasurer" && request.approval_required) {
+          await client.query(
+            `UPDATE transaction_reversal_requests
+             SET status = 'pending_chairperson',
+                 treasurer_reviewed_by = $1,
+                 treasurer_reviewed_at = NOW()
+             WHERE id = $2`,
+            [req.session.user.id, request.reversal_request_id]
+          );
+
+          await client.query(
+            `INSERT INTO notifications (
+               recipient_user_id, transaction_id, event_type, title, message
+             )
+             SELECT id, $1, 'transaction_reversal_requested',
+                    'Transaction reversal approval needed',
+                    'The treasurer reviewed and forwarded a member reversal request to you. Reason: ' || $2
+             FROM users
+             WHERE role = 'chairperson'
+               AND account_status = 'approved'
+               AND deleted_at IS NULL`,
+            [request.transaction_id, request.reversal_reason]
+          );
+
+          await client.query(
+            `INSERT INTO notifications (
+               recipient_user_id, transaction_id, event_type, title, message
+             )
+             SELECT id, $1, 'transaction_reversal_requested',
+                    'Reversal request under review',
+                    'The treasurer reviewed your reversal request and forwarded it to the chairperson. It is now under review.'
+             FROM users
+             WHERE id = $2
+               AND role = 'member'
+               AND account_status = 'approved'
+               AND deleted_at IS NULL`,
+            [request.transaction_id, request.requested_by]
+          );
+        } else {
+          reversedTransaction = await reverseTransaction(client, {
+            transaction: request,
+            actorUserId: req.session.user.id,
+            reason: request.reversal_reason,
+            approvalRequestId: request.reversal_request_id,
+            excludedMemberUserId: role === "chairperson"
+              ? request.member_user_id
+              : null,
+          });
+        }
+      }
+
+      if (role === "chairperson" || decision === "rejected" ||
+          (role === "treasurer" && !request.approval_required)) {
+        await client.query(
+          `UPDATE transaction_reversal_requests
+           SET status = $1,
+               reviewed_by = $2,
+               reviewed_at = NOW()
+           WHERE id = $3`,
+          [decision, req.session.user.id, request.reversal_request_id]
+        );
+      }
+
+      if (role === "chairperson") {
+        await client.query(
+          `INSERT INTO notifications (
+             recipient_user_id, transaction_id, event_type, title, message
+           )
+           SELECT DISTINCT recipients.recipient_user_id,
+                  $1::uuid,
+                  'transaction_updated',
+                  'Reversal request ' || $2,
+                  'The chairperson ' || $2 || ' the reversal request. Request reason: ' || $7 ||
+                    '. Chairperson response: ' || $3
+           FROM (
+             VALUES
+               ($4::uuid),
+               ($5::uuid),
+               ($6::uuid)
+           ) AS recipients(recipient_user_id)
+           WHERE recipients.recipient_user_id IS NOT NULL`,
+          [
+            request.transaction_id,
+            decision,
+            decisionReason,
+            request.requested_by,
+            request.treasurer_reviewed_by,
+            request.member_user_id,
+            request.reversal_reason,
+          ]
+        );
+      }
+
+      await client.query(
+        `INSERT INTO audit_logs (
+           actor_user_id, action, target_type, target_id, old_values, new_values
+         )
+         VALUES ($1, $2, 'transaction_reversal_request', $3, $4::jsonb, $5::jsonb)`,
+        [
+          req.session.user.id,
+          `transaction_reversal_request_${role}_${decision}`,
+          request.reversal_request_id,
+          JSON.stringify({
+            transaction_id: request.transaction_id,
+            reason: request.reversal_reason,
+            status: expectedStatus,
+          }),
+          JSON.stringify({
+            status: role === "treasurer" && decision === "approved" && request.approval_required
+              ? "pending_chairperson"
+              : decision,
+            ...(role === "chairperson" ? { response_reason: decisionReason } : {}),
+          }),
+        ]
+      );
+
+      await client.query("COMMIT");
+      return res.status(200).json({
+        success: true,
+        message: decision === "rejected"
+          ? "Reversal request declined."
+          : role === "treasurer" && request.approval_required
+            ? "Request approved and forwarded to the chairperson for final approval."
+            : "Reversal approved and the transaction has been reversed.",
+        transaction: reversedTransaction,
+      });
+    } catch (error) {
+      if (client) {
+        await client.query("ROLLBACK").catch((rollbackError) => {
+          console.error("Reversal approval rollback failed:", rollbackError);
+        });
+      }
+      return next(error);
+    } finally {
+      if (client) client.release();
     }
   }
 );
@@ -1005,7 +1429,7 @@ router.get(
   async (req, res, next) => {
     try {
       const { weekStart } = req.query;
-      let selectedMonday = null;
+      let selectedSunday = null;
 
       if (weekStart !== undefined) {
         if (
@@ -1014,7 +1438,7 @@ router.get(
         ) {
           return res.status(400).json({
             success: false,
-            message: "weekStart must be a valid Monday date in YYYY-MM-DD format.",
+            message: "weekStart must be a valid Sunday date in YYYY-MM-DD format.",
           });
         }
 
@@ -1023,15 +1447,15 @@ router.get(
         if (
           Number.isNaN(parsedDate.getTime()) ||
           parsedDate.toISOString().slice(0, 10) !== weekStart ||
-          parsedDate.getUTCDay() !== 1
+          parsedDate.getUTCDay() !== 0
         ) {
           return res.status(400).json({
             success: false,
-            message: "weekStart must be a valid Monday date in YYYY-MM-DD format.",
+            message: "weekStart must be a valid Sunday date in YYYY-MM-DD format.",
           });
         }
 
-        selectedMonday = weekStart;
+        selectedSunday = weekStart;
       }
 
       const result = await query(
@@ -1042,26 +1466,26 @@ router.get(
          reporting_week AS (
            SELECT COALESCE(
              $1::date,
-             today - (EXTRACT(ISODOW FROM today)::integer - 1)
-           ) AS monday
+             today - EXTRACT(DOW FROM today)::integer
+           ) AS sunday
            FROM local_date
          )
          SELECT
-           rw.monday::text AS week_start,
-           (rw.monday + 5)::text AS week_end,
+           rw.sunday::text AS week_start,
+           (rw.sunday + 6)::text AS week_end,
            COUNT(t.id) AS transaction_count,
            COALESCE(SUM(t.amount), 0) AS contribution_total
          FROM reporting_week rw
          LEFT JOIN transactions t
            ON t.status = 'active'
           AND t.paid_at >= (
-            rw.monday::timestamp AT TIME ZONE 'Africa/Nairobi'
+            rw.sunday::timestamp AT TIME ZONE 'Africa/Nairobi'
           )
           AND t.paid_at < (
-            (rw.monday + 6)::timestamp AT TIME ZONE 'Africa/Nairobi'
+            (rw.sunday + 7)::timestamp AT TIME ZONE 'Africa/Nairobi'
           )
-         GROUP BY rw.monday`,
-        [selectedMonday]
+         GROUP BY rw.sunday`,
+        [selectedSunday]
       );
 
       const report = result.rows[0];
@@ -1089,7 +1513,7 @@ router.get(
   async (req, res, next) => {
     try {
       const { weekStart } = req.query;
-      let selectedMonday = null;
+      let selectedSunday = null;
 
       if (weekStart !== undefined) {
         if (
@@ -1098,7 +1522,7 @@ router.get(
         ) {
           return res.status(400).json({
             success: false,
-            message: "weekStart must be a valid Monday date in YYYY-MM-DD format.",
+            message: "weekStart must be a valid Sunday date in YYYY-MM-DD format.",
           });
         }
 
@@ -1107,15 +1531,15 @@ router.get(
         if (
           Number.isNaN(parsedDate.getTime()) ||
           parsedDate.toISOString().slice(0, 10) !== weekStart ||
-          parsedDate.getUTCDay() !== 1
+          parsedDate.getUTCDay() !== 0
         ) {
           return res.status(400).json({
             success: false,
-            message: "weekStart must be a valid Monday date in YYYY-MM-DD format.",
+            message: "weekStart must be a valid Sunday date in YYYY-MM-DD format.",
           });
         }
 
-        selectedMonday = weekStart;
+        selectedSunday = weekStart;
       }
 
       const result = await query(
@@ -1126,8 +1550,8 @@ router.get(
          reporting_week AS (
            SELECT COALESCE(
              $1::date,
-             today - (EXTRACT(ISODOW FROM today)::integer - 1)
-           ) AS monday
+             today - EXTRACT(DOW FROM today)::integer
+           ) AS sunday
            FROM local_date
          ),
          weekly_transactions AS (
@@ -1145,10 +1569,10 @@ router.get(
              ON u.id = t.member_user_id
            WHERE t.status = 'active'
              AND t.paid_at >= (
-               rw.monday::timestamp AT TIME ZONE 'Africa/Nairobi'
+               rw.sunday::timestamp AT TIME ZONE 'Africa/Nairobi'
              )
              AND t.paid_at < (
-               (rw.monday + 6)::timestamp AT TIME ZONE 'Africa/Nairobi'
+               (rw.sunday + 7)::timestamp AT TIME ZONE 'Africa/Nairobi'
              )
          )
          SELECT
@@ -1159,7 +1583,7 @@ router.get(
          FROM weekly_transactions
          GROUP BY member_user_id, member_name
          ORDER BY SUM(amount) DESC, member_name ASC`,
-        [selectedMonday]
+        [selectedSunday]
       );
 
       const weekResult = await query(
@@ -1170,23 +1594,23 @@ router.get(
                (NOW() AT TIME ZONE 'Africa/Nairobi')::date
                - (
                  EXTRACT(
-                   ISODOW FROM
+                   DOW FROM
                    (NOW() AT TIME ZONE 'Africa/Nairobi')::date
-                 )::integer - 1
+                 )::integer
                )
              )
            )::text AS week_start`,
-        [selectedMonday]
+        [selectedSunday]
       );
 
-      const monday = weekResult.rows[0].week_start;
-      const saturday = new Date(`${monday}T00:00:00Z`);
-      saturday.setUTCDate(saturday.getUTCDate() + 5);
+      const sunday = weekResult.rows[0].week_start;
+      const saturday = new Date(`${sunday}T00:00:00Z`);
+      saturday.setUTCDate(saturday.getUTCDate() + 6);
 
       return res.status(200).json({
         success: true,
         weeklyReport: {
-          weekStart: monday,
+          weekStart: sunday,
           weekEnd: saturday.toISOString().slice(0, 10),
           timezone: "Africa/Nairobi",
           members: result.rows.map((row) => ({

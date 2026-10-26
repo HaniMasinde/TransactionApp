@@ -1,13 +1,74 @@
 
 const express = require("express");
+const multer = require("multer");
 const { query, getClient } = require("../config/database");
 const { requireAuth, requireRole } = require("../middleware/auth");
 const memberRepository = require("../repository/memberRepository");
+const {
+  MAX_PROFILE_PICTURE_BYTES,
+  processProfilePicture,
+} = require("../utils/profilePicture");
+const {
+  isKenyanMobilePhone,
+  normalizePhoneInput,
+} = require("../utils/phoneNumber");
 
 const router = express.Router();
 
-const PHONE_PATTERN = /^\+?[0-9]{9,15}$/;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const profilePictureUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: MAX_PROFILE_PICTURE_BYTES,
+    files: 1,
+    fields: 0,
+    parts: 1,
+  },
+  fileFilter(_req, file, callback) {
+    if (!["image/jpeg", "image/png"].includes(file.mimetype)) {
+      const error = new Error("Only JPEG and PNG images are supported.");
+      error.code = "UNSUPPORTED_PROFILE_IMAGE";
+      return callback(error);
+    }
+    return callback(null, true);
+  },
+}).single("profilePicture");
+
+function handleProfilePictureUpload(req, res, next) {
+  profilePictureUpload(req, res, (error) => {
+    if (!error) return next();
+
+    if (error.code === "LIMIT_FILE_SIZE") {
+      return res.status(413).json({
+        success: false,
+        message: "Profile pictures must be 2 MB or smaller.",
+      });
+    }
+
+    if (error.code === "UNSUPPORTED_PROFILE_IMAGE") {
+      return res.status(415).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
+    if (error.code === "LIMIT_UNEXPECTED_FILE") {
+      return res.status(400).json({
+        success: false,
+        message: "Upload one profile picture using the profilePicture field.",
+      });
+    }
+
+    if (error.code === "LIMIT_FIELD_COUNT" || error.code === "LIMIT_PART_COUNT") {
+      return res.status(400).json({
+        success: false,
+        message: "Upload one profile picture without extra form fields.",
+      });
+    }
+
+    return next(error);
+  });
+}
 
 // GET /api/members
 router.get(
@@ -53,7 +114,8 @@ router.get("/me", requireAuth, async (req, res, next) => {
          role,
          account_status,
          created_at,
-         updated_at
+         updated_at,
+         profile_picture_updated_at
        FROM users
        WHERE id = $1
          AND deleted_at IS NULL`,
@@ -80,6 +142,7 @@ router.get("/me", requireAuth, async (req, res, next) => {
         accountStatus: user.account_status,
         registeredAt: user.created_at,
         updatedAt: user.updated_at,
+        profilePictureUpdatedAt: user.profile_picture_updated_at,
       },
     });
   } catch (error) {
@@ -87,13 +150,103 @@ router.get("/me", requireAuth, async (req, res, next) => {
   }
 });
 
+router.get("/me/profile-picture", requireAuth, async (req, res, next) => {
+  try {
+    const result = await query(
+      `SELECT profile_picture
+       FROM users
+       WHERE id = $1
+         AND deleted_at IS NULL`,
+      [req.session.user.id]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "User account not found.",
+      });
+    }
+
+    if (!result.rows[0].profile_picture) {
+      return res.status(204).end();
+    }
+
+    res.set({
+      "Cache-Control": "private, no-store",
+      "Content-Type": "image/jpeg",
+      "X-Content-Type-Options": "nosniff",
+    });
+    return res.status(200).send(result.rows[0].profile_picture);
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.put(
+  "/me/profile-picture",
+  requireAuth,
+  handleProfilePictureUpload,
+  async (req, res, next) => {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: "Choose a JPEG or PNG profile picture.",
+      });
+    }
+
+    let profilePicture;
+    try {
+      profilePicture = await processProfilePicture(req.file.buffer);
+    } catch (error) {
+      if (error.statusCode) {
+        return res.status(error.statusCode).json({
+          success: false,
+          message: error.message,
+        });
+      }
+
+      return res.status(400).json({
+        success: false,
+        message: "The selected image is corrupt or cannot be decoded.",
+      });
+    }
+
+    try {
+      const result = await query(
+        `UPDATE users
+         SET profile_picture = $1,
+             profile_picture_updated_at = NOW(),
+             updated_at = NOW()
+         WHERE id = $2
+           AND deleted_at IS NULL
+         RETURNING profile_picture_updated_at`,
+        [profilePicture, req.session.user.id]
+      );
+
+      if (result.rowCount === 0) {
+        return res.status(404).json({
+          success: false,
+          message: "User account not found.",
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: "Profile picture updated successfully.",
+        profilePictureUpdatedAt: result.rows[0].profile_picture_updated_at,
+      });
+    } catch (error) {
+      return next(error);
+    }
+  }
+);
+
 // PATCH /api/members/me
 router.patch("/me", requireAuth, async (req, res, next) => {
   const body = req.body || {};
   const fullName = typeof body.fullName === "string" ? body.fullName.trim() : "";
-  const phone = typeof body.phone === "string"
-    ? body.phone.trim().replace(/[^0-9+]/g, "")
-    : "";
+  const phoneInput = typeof body.phone === "string" ? body.phone.trim() : "";
+  const phone = normalizePhoneInput(phoneInput);
   const recoveryEmail = typeof body.recoveryEmail === "string"
     ? body.recoveryEmail.trim().toLowerCase()
     : "";
@@ -105,10 +258,10 @@ router.patch("/me", requireAuth, async (req, res, next) => {
     });
   }
 
-  if (!PHONE_PATTERN.test(phone)) {
+  if (!isKenyanMobilePhone(phoneInput)) {
     return res.status(400).json({
       success: false,
-      message: "Enter a valid phone number with 9 to 15 digits.",
+      message: "Enter a valid Kenyan mobile number (e.g. 0712 345 678 or +254 712 345 678).",
     });
   }
 
@@ -153,7 +306,8 @@ router.patch("/me", requireAuth, async (req, res, next) => {
            updated_at = NOW()
        WHERE id = $6
        RETURNING id, full_name, phone, recovery_email, role,
-                 account_status, created_at, updated_at`,
+                 account_status, created_at, updated_at,
+                 profile_picture_updated_at`,
       [fullName, phone, phone, recoveryEmail, recoveryEmail, req.session.user.id]
     );
 
@@ -191,6 +345,7 @@ router.patch("/me", requireAuth, async (req, res, next) => {
         accountStatus: account.account_status,
         registeredAt: account.created_at,
         updatedAt: account.updated_at,
+        profilePictureUpdatedAt: account.profile_picture_updated_at,
       },
     });
   } catch (error) {
@@ -231,6 +386,155 @@ router.get(
       });
     } catch (error) {
       return next(error);
+    }
+  }
+);
+
+router.get(
+  "/me/role-removal-request",
+  requireAuth,
+  requireRole("chairperson", "secretary", "treasurer"),
+  async (req, res, next) => {
+    try {
+      const result = await query(
+        `SELECT id, office_role AS "officeRole", reason, status,
+                requested_at AS "requestedAt"
+         FROM official_role_removal_requests
+         WHERE requester_user_id = $1
+           AND status = 'pending'
+         LIMIT 1`,
+        [req.user.id]
+      );
+
+      return res.status(200).json({
+        success: true,
+        roleRemovalRequest: result.rows[0] || null,
+      });
+    } catch (error) {
+      return next(error);
+    }
+  }
+);
+
+router.post(
+  "/me/role-removal-request",
+  requireAuth,
+  requireRole("chairperson", "secretary", "treasurer"),
+  async (req, res, next) => {
+    const reason =
+      typeof req.body?.reason === "string" ? req.body.reason.trim() : "";
+
+    if (reason.length < 5 || reason.length > 1000) {
+      return res.status(400).json({
+        success: false,
+        message: "Provide a role-removal reason between 5 and 1000 characters.",
+      });
+    }
+
+    let client;
+    try {
+      client = await getClient();
+      await client.query("BEGIN");
+
+      const currentUserResult = await client.query(
+        `SELECT id, full_name, role
+         FROM users
+         WHERE id = $1
+           AND role IN ('chairperson', 'secretary', 'treasurer')
+           AND account_status = 'approved'
+           AND deleted_at IS NULL
+         FOR UPDATE`,
+        [req.user.id]
+      );
+      const currentUser = currentUserResult.rows[0];
+
+      if (!currentUser) {
+        await client.query("ROLLBACK");
+        return res.status(409).json({
+          success: false,
+          message: "Only active officials can request removal from their role.",
+        });
+      }
+
+      const existingRequest = await client.query(
+        `SELECT id, office_role AS "officeRole", reason, status,
+                requested_at AS "requestedAt"
+         FROM official_role_removal_requests
+         WHERE requester_user_id = $1
+           AND status = 'pending'
+         LIMIT 1
+         FOR UPDATE`,
+        [currentUser.id]
+      );
+
+      if (existingRequest.rowCount > 0) {
+        await client.query("ROLLBACK");
+        return res.status(409).json({
+          success: false,
+          message: "You already have a role-removal request awaiting review.",
+          roleRemovalRequest: existingRequest.rows[0],
+        });
+      }
+
+      const requestResult = await client.query(
+        `INSERT INTO official_role_removal_requests (
+           requester_user_id, office_role, reason
+         )
+         VALUES ($1, $2, $3)
+         RETURNING id, office_role AS "officeRole", reason, status,
+                   requested_at AS "requestedAt"`,
+        [currentUser.id, currentUser.role, reason]
+      );
+      const roleRemovalRequest = requestResult.rows[0];
+
+      await client.query(
+        `INSERT INTO notifications (
+           recipient_user_id, event_type, title, message
+         )
+         SELECT id, 'official_role_removal_request',
+                'Official role-removal request',
+                $1
+         FROM users
+         WHERE role = 'technical_admin'
+           AND account_status = 'approved'
+           AND deleted_at IS NULL`,
+        [
+          `${currentUser.full_name} (${currentUser.role}) requested removal from office. Reason: ${reason}`,
+        ]
+      );
+
+      await client.query(
+        `INSERT INTO audit_logs (
+           actor_user_id, action, target_type, target_id, new_values
+         )
+         VALUES ($1, 'official_role_removal_requested', 'user', $2, $3::jsonb)`,
+        [
+          currentUser.id,
+          currentUser.id,
+          JSON.stringify({
+            request_id: roleRemovalRequest.id,
+            office_role: currentUser.role,
+            reason,
+            status: "pending",
+          }),
+        ]
+      );
+
+      await client.query("COMMIT");
+      return res.status(202).json({
+        success: true,
+        message: "Role-removal request sent to the Technical Admin.",
+        roleRemovalRequest,
+      });
+    } catch (error) {
+      if (client) {
+        await client.query("ROLLBACK").catch((rollbackError) => {
+          console.error("Role-removal request rollback failed:", rollbackError);
+        });
+      }
+      return next(error);
+    } finally {
+      if (client) client.release();
     }
   }
 );

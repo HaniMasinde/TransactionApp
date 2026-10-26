@@ -21,8 +21,292 @@ const MINIMUM_OFFICE_HOLDERS = {
   chairperson: 1,
 };
 const MAX_TREASURERS = 2;
+const ANNOUNCEMENT_ROLES = [
+  "chairperson",
+  "secretary",
+  "treasurer",
+  "member",
+];
 
 router.use(requireAuth, requireRole("technical_admin"));
+
+// GET /api/technical-admin/activity-stats
+router.get("/activity-stats", async (req, res, next) => {
+  try {
+    const result = await query(
+      `WITH tracked_events (event_type) AS (
+         VALUES
+           ('registrations'),
+           ('logins'),
+           ('password_resets'),
+           ('picture_uploads'),
+           ('transaction_recordings'),
+           ('reversal_requests'),
+           ('report_generations'),
+           ('logouts'),
+           ('account_deletions')
+       )
+       SELECT tracked_events.event_type,
+              COUNT(activity.id)::int AS total,
+              COUNT(activity.id) FILTER (
+                WHERE activity.outcome = 'success'
+              )::int AS successful,
+              COUNT(activity.id) FILTER (
+                WHERE activity.outcome = 'error'
+              )::int AS errors
+       FROM tracked_events
+       LEFT JOIN application_activity_events activity
+         ON activity.event_type = tracked_events.event_type
+        AND activity.created_at >= NOW() - INTERVAL '30 days'
+       GROUP BY tracked_events.event_type
+       ORDER BY tracked_events.event_type`
+    );
+
+    return res.status(200).json({
+      success: true,
+      periodDays: 30,
+      stats: result.rows,
+    });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.get("/role-removal-requests", async (req, res, next) => {
+  try {
+    const result = await query(
+      `SELECT request.id, request.requester_user_id AS "requesterUserId",
+              request.office_role AS "officeRole", request.reason,
+              request.requested_at AS "requestedAt",
+              requester.full_name AS "requesterName"
+       FROM official_role_removal_requests request
+       JOIN users requester ON requester.id = request.requester_user_id
+       WHERE request.status = 'pending'
+         AND requester.role = request.office_role
+         AND requester.account_status = 'approved'
+         AND requester.deleted_at IS NULL
+       ORDER BY request.requested_at ASC`
+    );
+
+    return res.status(200).json({
+      success: true,
+      requests: result.rows,
+    });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.patch("/role-removal-requests/:id", async (req, res, next) => {
+  const { id } = req.params;
+  const decision = req.body?.decision;
+
+  if (!UUID_REGEX.test(id) || !["approved", "rejected"].includes(decision)) {
+    return res.status(400).json({
+      success: false,
+      message: "Provide a valid request ID and an approved or rejected decision.",
+    });
+  }
+
+  let client;
+  try {
+    client = await pool.connect();
+    await client.query("BEGIN");
+
+    const requestResult = await client.query(
+      `SELECT request.id, request.requester_user_id,
+              request.office_role, request.reason,
+              requester.full_name, requester.role AS current_role
+       FROM official_role_removal_requests request
+       JOIN users requester ON requester.id = request.requester_user_id
+       WHERE request.id = $1
+         AND request.status = 'pending'
+         AND requester.account_status = 'approved'
+         AND requester.deleted_at IS NULL
+       FOR UPDATE OF request, requester`,
+      [id]
+    );
+
+    if (requestResult.rowCount === 0) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({
+        success: false,
+        message: "Pending role-removal request not found.",
+      });
+    }
+
+    const request = requestResult.rows[0];
+    if (request.current_role !== request.office_role) {
+      await client.query("ROLLBACK");
+      return res.status(409).json({
+        success: false,
+        message: "The official's role changed before this request was reviewed.",
+      });
+    }
+
+    if (decision === "approved" && request.office_role === "chairperson") {
+      const otherChairperson = await client.query(
+        `SELECT 1
+         FROM users
+         WHERE role = 'chairperson'
+           AND id <> $1
+           AND account_status = 'approved'
+           AND deleted_at IS NULL
+         LIMIT 1`,
+        [request.requester_user_id]
+      );
+
+      if (otherChairperson.rowCount === 0) {
+        await client.query("ROLLBACK");
+        return res.status(409).json({
+          success: false,
+          message: "Assign another chairperson before approving this role-removal request.",
+        });
+      }
+    }
+
+    if (decision === "approved") {
+      await client.query(
+        `UPDATE users
+         SET role = 'member', updated_at = NOW()
+         WHERE id = $1`,
+        [request.requester_user_id]
+      );
+    }
+
+    await client.query(
+      `UPDATE official_role_removal_requests
+       SET status = $1, reviewed_by = $2, reviewed_at = NOW()
+       WHERE id = $3`,
+      [decision, req.user.id, request.id]
+    );
+
+    await client.query(
+      `INSERT INTO notifications (
+         recipient_user_id, event_type, title, message
+       )
+       VALUES ($1, 'transaction_updated', $2, $3)`,
+      [
+        request.requester_user_id,
+        decision === "approved" ? "Role-removal request approved" : "Role-removal request declined",
+        decision === "approved"
+          ? `Your request to step down as ${request.office_role} was approved. Your account is now a member.`
+          : `Your request to step down as ${request.office_role} was declined. Contact the Technical Admin for more information.`,
+      ]
+    );
+
+    await client.query(
+      `INSERT INTO audit_logs (
+         actor_user_id, action, target_type, target_id, old_values, new_values
+       )
+       VALUES ($1, $2, 'official_role_removal_request', $3, $4::jsonb, $5::jsonb)`,
+      [
+        req.user.id,
+        `official_role_removal_${decision}`,
+        request.id,
+        JSON.stringify({
+          requester_user_id: request.requester_user_id,
+          office_role: request.office_role,
+          reason: request.reason,
+          status: "pending",
+        }),
+        JSON.stringify({
+          status: decision,
+          new_role: decision === "approved" ? "member" : request.office_role,
+        }),
+      ]
+    );
+
+    await client.query("COMMIT");
+    return res.status(200).json({
+      success: true,
+      message: decision === "approved"
+        ? "Role-removal request approved."
+        : "Role-removal request declined.",
+    });
+  } catch (error) {
+    if (client) {
+      await client.query("ROLLBACK").catch((rollbackError) => {
+        console.error("Role-removal decision rollback failed:", rollbackError);
+      });
+    }
+    return next(error);
+  } finally {
+    if (client) client.release();
+  }
+});
+
+// POST /api/technical-admin/announcements
+router.post("/announcements", async (req, res, next) => {
+  const title =
+    typeof req.body?.title === "string" ? req.body.title.trim() : "";
+  const message =
+    typeof req.body?.message === "string" ? req.body.message.trim() : "";
+
+  if (title.length < 3 || title.length > 200) {
+    return res.status(400).json({
+      success: false,
+      message: "Announcement title must be between 3 and 200 characters.",
+    });
+  }
+
+  if (message.length < 5 || message.length > 2000) {
+    return res.status(400).json({
+      success: false,
+      message: "Announcement message must be between 5 and 2000 characters.",
+    });
+  }
+
+  let client;
+  try {
+    client = await pool.connect();
+    await client.query("BEGIN");
+
+    const notificationResult = await client.query(
+      `INSERT INTO notifications (
+         recipient_user_id, event_type, title, message
+       )
+       SELECT id, 'app_update_announcement', $1, $2
+       FROM users
+       WHERE role = ANY($3::text[])
+         AND account_status = 'approved'
+         AND deleted_at IS NULL`,
+      [title, message, ANNOUNCEMENT_ROLES]
+    );
+
+    await client.query(
+      `INSERT INTO audit_logs (
+         actor_user_id, action, target_type, new_values
+       )
+       VALUES ($1, 'app_update_announcement_sent', 'notification', $2::jsonb)`,
+      [
+        req.user.id,
+        JSON.stringify({
+          title,
+          message,
+          recipient_roles: ANNOUNCEMENT_ROLES,
+          recipient_count: notificationResult.rowCount,
+        }),
+      ]
+    );
+
+    await client.query("COMMIT");
+    return res.status(201).json({
+      success: true,
+      message: "App update announcement sent.",
+      recipientCount: notificationResult.rowCount,
+    });
+  } catch (error) {
+    if (client) {
+      await client.query("ROLLBACK").catch((rollbackError) => {
+        console.error("App update announcement rollback failed:", rollbackError);
+      });
+    }
+    return next(error);
+  } finally {
+    if (client) client.release();
+  }
+});
 
 // GET /api/technical-admin/users
 router.get("/users", async (req, res, next) => {

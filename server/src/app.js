@@ -8,11 +8,13 @@ const helmet = require("helmet");
 const session = require("express-session");
 const pgSession = require("connect-pg-simple")(session);
 const errorHandler = require("./middleware/errorHandler");
+const { createActivityTracker } = require("./middleware/activityTracker");
 
 const { pool } = require("./config/database");
 const apiRoutes = require("./routes");
 
 const app = express();
+const SESSION_IDLE_TIMEOUT_MS = 20 * 60 * 1000;
 
 if (!process.env.SESSION_SECRET) {
   throw new Error("SESSION_SECRET must be configured");
@@ -46,15 +48,17 @@ app.use(
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
+    rolling: true,
     cookie: {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
-  sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-  maxAge: 30 * 60 * 1000,
-},
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      maxAge: SESSION_IDLE_TIMEOUT_MS,
+    },
   })
 );
 
+app.use(createActivityTracker(pool));
 
 app.use("/api", apiRoutes);
 

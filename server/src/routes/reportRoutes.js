@@ -33,8 +33,8 @@ function isValidDate(value) {
   );
 }
 
-function isMonday(value) {
-  return new Date(`${value}T00:00:00Z`).getUTCDay() === 1;
+function isSunday(value) {
+  return new Date(`${value}T00:00:00Z`).getUTCDay() === 0;
 }
 
 // Convert a Nairobi-local date to its UTC instant.
@@ -153,27 +153,26 @@ router.get("/monthly/members", canViewReports, async (req, res, next) => {
 });
 
 // GET /api/reports/weekly/members?weekStart=YYYY-MM-DD
-// Monday through Saturday in Africa/Nairobi.
-// Sunday is deliberately excluded.
+// Sunday through Saturday in Africa/Nairobi.
 router.get("/weekly/members", canViewReports, async (req, res, next) => {
   try {
     const { weekStart } = req.query;
 
-    if (!isValidDate(weekStart) || !isMonday(weekStart)) {
+    if (!isValidDate(weekStart) || !isSunday(weekStart)) {
       return res.status(400).json({
         success: false,
-        message: "Provide a valid Monday date in YYYY-MM-DD format for weekStart.",
+        message: "Provide a valid Sunday date in YYYY-MM-DD format for weekStart.",
       });
     }
 
     const saturday = new Date(
-      new Date(`${weekStart}T00:00:00Z`).getTime() + 5 * 86400000
+      new Date(`${weekStart}T00:00:00Z`).getTime() + 6 * 86400000
     )
       .toISOString()
       .slice(0, 10);
 
-    const sunday = new Date(
-      new Date(`${weekStart}T00:00:00Z`).getTime() + 6 * 86400000
+    const nextSunday = new Date(
+      new Date(`${weekStart}T00:00:00Z`).getTime() + 7 * 86400000
     )
       .toISOString()
       .slice(0, 10);
@@ -209,7 +208,7 @@ router.get("/weekly/members", canViewReports, async (req, res, next) => {
        ORDER BY u.full_name`,
       [
         weekStart,
-        sunday,
+        nextSunday,
         TIME_ZONE,
       ]
     );
@@ -217,7 +216,7 @@ router.get("/weekly/members", canViewReports, async (req, res, next) => {
     return res.status(200).json({
       success: true,
       weekStart,
-      weekEnd: sunday,
+      weekEnd: saturday,
       timeZone: TIME_ZONE,
       report: result.rows,
     });
