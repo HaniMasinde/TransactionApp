@@ -79,12 +79,13 @@ router.delete("/audit-logs", async (req, res, next) => {
       `INSERT INTO notifications (
          recipient_user_id, event_type, title, message
        )
-       SELECT id, 'audit_logs_cleared', 'Audit history cleared',
-              'The Technical Administrator cleared the audit history.'
+       SELECT id, 'audit_logs_cleared', 'Audit logs cleared',
+              'The Technical Administrator cleared the audit logs.'
        FROM users
-       WHERE role = 'member'
+       WHERE role = ANY($1::text[])
          AND account_status = 'approved'
-         AND deleted_at IS NULL`
+         AND deleted_at IS NULL`,
+      [ANNOUNCEMENT_ROLES]
     );
 
     await client.query(
@@ -102,7 +103,7 @@ router.delete("/audit-logs", async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      message: "Audit history cleared. This deletion was recorded.",
+      message: "Audit logs cleared. Active approved members were notified.",
       deletedCount: deleted.rowCount,
       notifiedCount: notifications.rowCount,
     });

@@ -319,6 +319,58 @@
   height: 13px;
 }
 
+.app-shell .app-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin-top: 24px;
+  padding: 18px 4px 6px;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.app-shell .app-footer__credits {
+  display: grid;
+  gap: 6px;
+}
+
+.app-shell .app-footer__links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.app-shell .app-footer__link {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: #2451dc;
+  background: var(--surface);
+  font-weight: 650;
+  text-decoration: none;
+  transition: background-color 160ms ease, border-color 160ms ease;
+}
+
+.app-shell .app-footer__link img {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+  border-radius: 4px;
+  object-fit: contain;
+}
+
+.app-shell .app-footer__link:hover {
+  border-color: #b6c7f5;
+  background: #f5f7fd;
+}
+
 .app-shell .password-card {
   margin-top: 20px;
 }
@@ -363,6 +415,17 @@
 .app-shell[data-theme='dark'] .topbar {
   border-color: #293653;
   background: #141e34;
+}
+
+.app-shell[data-theme='dark'] .app-footer__link {
+  border-color: #344363;
+  color: #b4c5ff;
+  background: #18223b;
+}
+
+.app-shell[data-theme='dark'] .app-footer__link:hover {
+  border-color: #516db8;
+  background: #202e4d;
 }
 
 .app-shell[data-theme='dark'] .sidebar-brand-icon,
@@ -615,6 +678,16 @@
 @media (max-width: 650px) {
   .app-shell .page-content {
     padding: 24px 16px 18px;
+  }
+
+  .app-shell .app-footer {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .app-shell .app-footer__links {
+    justify-content: flex-start;
   }
 
   .app-shell .page-header {

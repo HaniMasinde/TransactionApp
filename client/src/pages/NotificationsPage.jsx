@@ -155,28 +155,21 @@ export default function NotificationsPage() {
               }`,
             }}
           >
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'flex-start',
-                justifyContent: 'space-between',
-                gap: '1rem',
-              }}
-            >
-              <div>
-                <h2 style={{ margin: '0 0 .4rem' }}>
+            <div className="notification-card__content">
+              <div className="notification-card__body">
+                <h2 className="notification-card__title">
                   {titleOf(item)}{' '}
                   {!isRead(item) && (
                     <span className="feature-pill">Unread</span>
                   )}
                 </h2>
 
-                <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>
+                <p className="notification-card__message">
                   {messageOf(item)}
                 </p>
 
                 {(item.createdAt ?? item.created_at) && (
-                  <p className="feature-muted">
+                  <p className="feature-muted notification-card__date">
                     {new Date(
                       item.createdAt ?? item.created_at,
                     ).toLocaleString('en-KE')}

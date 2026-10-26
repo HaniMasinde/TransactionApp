@@ -184,6 +184,35 @@
   gap: 0.5rem;
 }
 
+.notification-card__content {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.notification-card__body {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.notification-card__title {
+  margin: 0 0 0.4rem;
+  overflow-wrap: anywhere;
+}
+
+.notification-card__message {
+  margin: 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.notification-card__date {
+  margin-bottom: 0;
+  overflow-wrap: anywhere;
+}
+
 .notification-delete-button {
   color: #a8322a;
 }
@@ -268,6 +297,15 @@
     width: 100%;
     justify-content: flex-start;
   }
+
+  .notification-card__content {
+    flex-direction: column;
+    gap: 0.9rem;
+  }
+
+  .notification-actions > .feature-button {
+    flex: 1 1 auto;
+  }
 }
 
 @media (max-width: 760px) {
@@ -303,5 +341,21 @@
 
   .feature-page__actions > * {
     max-width: 100%;
+  }
+
+  .notifications-page .feature-page__actions > .feature-button {
+    width: 100%;
+  }
+
+  .notification-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .notification-actions > .feature-button {
+    justify-content: center;
+    min-width: 0;
+    padding-inline: 0.45rem;
+    white-space: nowrap;
   }
 }
