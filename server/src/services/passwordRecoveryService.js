@@ -29,7 +29,39 @@ function hashToken(token) {
   return crypto.createHash("sha256").update(token).digest("hex");
 }
 
+function getFrontendUrl() {
+  const configuredUrl = process.env.FRONTEND_URL;
+
+  if (!configuredUrl) {
+    throw new Error("FRONTEND_URL is not configured.");
+  }
+
+  let frontendUrl;
+  try {
+    frontendUrl = new URL(configuredUrl);
+  } catch {
+    throw new Error("FRONTEND_URL must be an absolute web address.");
+  }
+
+  if (!["http:", "https:"].includes(frontendUrl.protocol)) {
+    throw new Error("FRONTEND_URL must use HTTP or HTTPS.");
+  }
+
+  if (
+    process.env.NODE_ENV === "production" &&
+    (frontendUrl.protocol !== "https:" ||
+      ["localhost", "127.0.0.1", "::1"].includes(frontendUrl.hostname))
+  ) {
+    throw new Error(
+      "Production FRONTEND_URL must use HTTPS and a public hostname."
+    );
+  }
+
+  return frontendUrl;
+}
+
 async function requestPasswordReset(email) {
+  const frontendUrl = getFrontendUrl();
   const normalizedEmail = String(email || "").trim().toLowerCase();
 
   const result = await query(
@@ -84,13 +116,7 @@ async function requestPasswordReset(email) {
   }
 
   try {
-    const frontendUrl = process.env.FRONTEND_URL;
-
-    if (!frontendUrl) {
-      throw new Error("FRONTEND_URL is not configured.");
-    }
-
-    const resetUrl = new URL("/reset-password", frontendUrl);
+    const resetUrl = new URL("/reset-password", frontendUrl.origin);
     resetUrl.searchParams.set("token", rawToken);
 
     await sendPasswordResetEmail(user.recovery_email, resetUrl.toString());
@@ -98,6 +124,8 @@ async function requestPasswordReset(email) {
     // Never log the raw token, reset URL, or recovery email.
     console.error("Password recovery email delivery failed.", {
       code: error.code || "EMAIL_CONFIGURATION_OR_DELIVERY_ERROR",
+      command: error.command || null,
+      responseCode: error.responseCode || null,
     });
 
     // Do not leave an active token behind when delivery fails.
