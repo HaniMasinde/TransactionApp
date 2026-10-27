@@ -62,7 +62,9 @@ function getFrontendUrl() {
 
 async function requestPasswordReset(email) {
   const frontendUrl = getFrontendUrl();
+   console.info("[PasswordRecovery] Frontend URL validated");
   const normalizedEmail = String(email || "").trim().toLowerCase();
+   console.info("[PasswordRecovery] Before database query");
 
   const result = await query(
     `SELECT id, recovery_email
@@ -72,7 +74,7 @@ async function requestPasswordReset(email) {
       LIMIT 1`,
     [normalizedEmail]
   );
-  console.info("[PasswordRecovery] Request received");
+  console.info("[PasswordRecovery] User lookup completed");
 
   // Unknown addresses receive the same public response as known addresses.
   if (!result.rows.length) {
