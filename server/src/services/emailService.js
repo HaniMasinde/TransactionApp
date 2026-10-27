@@ -89,22 +89,27 @@ async function sendEmailVerificationCode(email, code) {
   });
 }
 
-async function sendPasswordResetEmail(email, resetUrl) {
+
+async function sendPasswordResetEmail(email, code) {
+  const safeCode = String(code);
+
   await sendEmail({
     email,
-    subject: "Reset your GCMS password",
+    subject: "Your GCMS password reset code",
     text: [
       "We received a request to reset your GCMS password.",
       "",
-      `Use this link to choose a new password: ${resetUrl}`,
+      `Your six-digit verification code is: ${safeCode}`,
       "",
-      "This link expires soon and can only be used once.",
+      "This code expires in 5 minutes and can only be used once.",
       "If you did not request this, you can ignore this email.",
     ].join("\n"),
     html: `
+      <h2>GCMS Password Reset</h2>
       <p>We received a request to reset your GCMS password.</p>
-      <p><a href="${resetUrl}">Reset your password</a></p>
-      <p>This link expires soon and can only be used once.</p>
+      <p>Your six-digit verification code is:</p>
+      <h1 style="letter-spacing: 6px;">${safeCode}</h1>
+      <p>This code expires in 5 minutes and can only be used once.</p>
       <p>If you did not request this, you can ignore this email.</p>
     `,
   });

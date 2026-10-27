@@ -141,16 +141,31 @@ function validateForgotPassword(body) {
   return null;
 }
 
+
 function validateResetPassword(body) {
-  const unknown = rejectUnknownFields(body, ["token", "newPassword"]);
+  const unknown = rejectUnknownFields(body, [
+    "email",
+    "code",
+    "newPassword"
+  ]);
+
   if (unknown) return unknown;
 
+  const email = body.email;
+
   if (
-    typeof body.token !== "string" ||
-    body.token.length < 32 ||
-    body.token.length > 512
+    typeof email !== "string" ||
+    email.trim().length > 254 ||
+    !EMAIL_RE.test(email.trim())
   ) {
-    return "Enter a valid recovery token.";
+    return "Enter a valid email address.";
+  }
+
+  if (
+    typeof body.code !== "string" ||
+    !/^\d{6}$/.test(body.code)
+  ) {
+    return "Enter the six-digit password reset code.";
   }
 
   const password = body.newPassword;
@@ -173,6 +188,7 @@ function validateResetPassword(body) {
 
   return null;
 }
+
 module.exports = {
   validateRegistration,
   validateLogin,

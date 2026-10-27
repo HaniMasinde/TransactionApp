@@ -8,6 +8,7 @@ import ReportsPage from './pages/ReportsPage.jsx'
 import AccountPage from './pages/AccountPage.jsx'
 import LoginPage from './pages/LoginPage.jsx'
 import ForgotPasswordPage from './pages/ForgotPasswordPage.jsx'
+import SetNewPasswordPage from './pages/SetPasswordPage.jsx'
 import ResetPasswordPage from './pages/ResetPasswordPage.jsx'
 import { getCurrentUser, login, logout } from './services/authService.js'
 import './App.css'
@@ -57,13 +58,10 @@ export default function App() {
   const [checkingSession, setCheckingSession] = useState(true)
   const [appError, setAppError] = useState('')
   const [authNotice, setAuthNotice] = useState('')
+  const [recoveryEmail, setRecoveryEmail] = useState('')
+  const [verifiedRecoveryCode, setVerifiedRecoveryCode] = useState('')
   const [loggingOut, setLoggingOut] = useState(false)
-  const [authPage, setAuthPage] = useState(() =>
-    window.location.pathname.replace(/\/$/, '') === '/reset-password'
-      ? 'reset-password'
-      : 'landing',
-  )
-
+  const [authPage, setAuthPage] = useState('landing')
   useAutoDismiss(appError, setAppError)
 
   useEffect(() => {
@@ -197,28 +195,45 @@ export default function App() {
         />
       )
     }
-
     if (authPage === 'forgot-password') {
-      return (
-        <ForgotPasswordPage
-          onLogin={showLogin}
-          onHome={showHome}
-        />
-      )
-    }
+  return (
+    <ForgotPasswordPage
+      onLogin={showLogin}
+      onHome={showHome}
+      onResetPassword={(email) => {
+        setRecoveryEmail(email.trim().toLowerCase())
+        setVerifiedRecoveryCode('')
+        setAuthPage('reset-password')
+      }}
+    />
+  )
+}
 
-    if (authPage === 'reset-password') {
-      const token = new URLSearchParams(window.location.search).get('token') || ''
-      return (
-        <ResetPasswordPage
-          token={token}
-          onLogin={showLogin}
-          onForgotPassword={() => setAuthPage('forgot-password')}
-          onHome={showHome}
-        />
-      )
-    }
+if (authPage === 'reset-password') {
+  return (
+    <ResetPasswordPage
+      email={recoveryEmail}
+      onLogin={showLogin}
+      onForgotPassword={() => setAuthPage('forgot-password')}
+      onHome={showHome}
+      onCodeVerified={(code) => {
+        setVerifiedRecoveryCode(code)
+        setAuthPage('set-new-password')
+      }}
+    />
+  )
+}
 
+if (authPage === 'set-new-password') {
+  return (
+    <SetNewPasswordPage
+      email={recoveryEmail}
+      code={verifiedRecoveryCode}
+      onLogin={showLogin}
+      onHome={showHome}
+    />
+  )
+}
     return (
       <LoginPage
         onLogin={handleLogin}

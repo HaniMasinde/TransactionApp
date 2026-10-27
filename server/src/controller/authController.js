@@ -134,10 +134,27 @@ async function forgotPassword(req, res, next) {
   }
 }
 
+async function verifyPasswordResetCode(req, res, next) {
+  try {
+    await passwordRecoveryService.verifyPasswordResetCode(
+      req.body.email,
+      req.body.code
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Verification successful.",
+    });
+  } catch (error) {
+    return next(error);
+  }
+}
+
 async function resetPassword(req, res, next) {
   try {
     await passwordRecoveryService.resetPassword(
-      req.body.token,
+      req.body.email,
+      req.body.code,
       req.body.newPassword
     );
 
@@ -157,5 +174,6 @@ module.exports = {
   forgotPassword,
   resetPassword,
   sendEmailVerificationCode,
+  verifyPasswordResetCode,
   verifyEmailCode
 };

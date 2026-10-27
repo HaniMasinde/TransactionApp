@@ -113,6 +113,9 @@ function validateEmailCode(body) {
 
   return null;
 }
+function validatePasswordResetCode(body) {
+  return validateEmailCode(body);
+}
 
 router.post(
   "/email-verification/send",
@@ -127,6 +130,25 @@ router.post(
   validateRequest(validateEmailCode),
   authController.verifyEmailCode
 );
+
+const passwordResetCodeLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    message: "Too many code verification attempts. Please try again later."
+  }
+});
+
+router.post(
+  "/reset-password/verify-code",
+  passwordResetCodeLimiter,
+  validateRequest(validatePasswordResetCode),
+  authController.verifyPasswordResetCode
+);
+
 
 const passwordChangeLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,

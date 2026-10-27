@@ -43,12 +43,25 @@ export function requestPasswordReset(email) {
   })
 }
 
-export function resetPassword(token, newPassword) {
-  return apiRequest('/auth/reset-password', {
+
+export function verifyPasswordResetCode(email, code) {
+  return apiRequest('/auth/reset-password/verify-code', {
     method: 'POST',
-    body: JSON.stringify({ token, newPassword }),
+    body: JSON.stringify({ email, code }),
   })
 }
+
+export function resetPassword(email, code, newPassword) {
+  return apiRequest('/auth/reset-password', {
+    method: 'POST',
+    body: JSON.stringify({
+      email,
+      code,
+      newPassword
+    }),
+  })
+}
+
 
 export async function getCurrentUser() {
   const result = await apiRequest('/auth/me')

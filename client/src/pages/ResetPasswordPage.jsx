@@ -1,35 +1,44 @@
 import { useState } from 'react'
 import AuthLayout from '../components/AuthLayout.jsx'
-import PasswordInput from '../components/PasswordInput.jsx'
-import { resetPassword } from '../services/authService.js'
+import { verifyPasswordResetCode } from '../services/authService.js'
 
-const passwordPolicy = 'Use 8–40 characters with at least one letter, one number, and one special character.'
-
-export default function ResetPasswordPage({ token, onLogin, onForgotPassword, onHome }) {
-  const [password, setPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
+export default function ResetPasswordPage({
+  email,
+  onLogin,
+  onForgotPassword,
+  onHome,
+  onCodeVerified,
+}) {
+  const [code, setCode] = useState('')
   const [error, setError] = useState('')
-  const [success, setSuccess] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
-  async function handleSubmit(event) {
+  async function handleVerifyCode(event) {
     event.preventDefault()
     setError('')
-    if (!token) {
-      setError('This password reset link is missing its token. Request a new link and try again.')
+
+    if (!email) {
+      setError('Your recovery email is missing. Please request a new code.')
       return
     }
-    if (password !== confirmPassword) {
-      setError('The passwords do not match.')
+
+    if (!/^\d{6}$/.test(code)) {
+      setError('Enter the complete six-digit verification code.')
       return
     }
 
     setSubmitting(true)
+
     try {
-      await resetPassword(token, password)
-      setSuccess(true)
+      await verifyPasswordResetCode(email, code)
+
+      // Move to the separate new-password page only after verification.
+      onCodeVerified(code)
     } catch (requestError) {
-      setError(requestError.message || 'Unable to reset your password. Request a new link and try again.')
+      setError(
+        requestError.message ||
+          'Invalid or expired verification code. Please try again.'
+      )
     } finally {
       setSubmitting(false)
     }
@@ -38,63 +47,64 @@ export default function ResetPasswordPage({ token, onLogin, onForgotPassword, on
   return (
     <AuthLayout
       eyebrow="ACCOUNT RECOVERY"
-      title={success ? 'Password updated' : 'Choose a new password'}
-      description={success
-        ? 'Your password has been reset. Sign in with your new password.'
-        : 'Create a new password for your account.'}
+      title="Verify your reset code"
+      description="Enter the six-digit verification code sent to your recovery email. The code expires after five minutes."
       onHome={onHome}
     >
-      {success ? (
-        <button className="primary-button auth-submit" type="button" onClick={onLogin}>
-          Back to sign in
+      <form className="auth-form" onSubmit={handleVerifyCode}>
+        <label htmlFor="reset-code">Six-digit verification code</label>
+
+        <input
+          id="reset-code"
+          name="code"
+          type="text"
+          inputMode="numeric"
+          autoComplete="one-time-code"
+          placeholder="Enter the six-digit code"
+          value={code}
+          onChange={(event) => {
+            setCode(event.target.value.replace(/\D/g, '').slice(0, 6))
+            setError('')
+          }}
+          pattern="[0-9]{6}"
+          maxLength={6}
+          autoFocus
+          required
+        />
+
+        {error && (
+          <p className="auth-error" role="alert">
+            {error}
+          </p>
+        )}
+
+        <button
+          className="primary-button auth-submit"
+          type="submit"
+          disabled={submitting || code.length !== 6 || !email}
+        >
+          {submitting ? 'Verifying code…' : 'Verify code'}
         </button>
-      ) : (
-        <form className="auth-form" onSubmit={handleSubmit}>
-          {!token && (
-            <p className="auth-error" role="alert">
-              This reset link is missing its token. Request a new link to continue.
-            </p>
-          )}
-          <label htmlFor="reset-password">New password</label>
-          <PasswordInput
-            id="reset-password"
-            name="newPassword"
-            autoComplete="new-password"
-            placeholder="Enter a new password"
-            value={password}
-            onChange={event => setPassword(event.target.value)}
-            minLength={8}
-            maxLength={40}
-            required
-          />
-          <label htmlFor="reset-password-confirm">Confirm new password</label>
-          <PasswordInput
-            id="reset-password-confirm"
-            name="confirmPassword"
-            autoComplete="new-password"
-            placeholder="Enter the new password again"
-            value={confirmPassword}
-            onChange={event => setConfirmPassword(event.target.value)}
-            minLength={8}
-            maxLength={40}
-            required
-          />
-          <p className="password-requirements">{passwordPolicy}</p>
-          {error && <p className="auth-error" role="alert">{error}</p>}
-          {submitting && <p className="auth-status" role="status">Updating your password…</p>}
-          <button className="primary-button auth-submit" type="submit" disabled={submitting || !token}>
-            {submitting ? 'Updating…' : 'Reset password'}
-          </button>
-        </form>
-      )}
-      {!success && (
-        <p className="auth-footnote">
-          Need a new link?{' '}
-          <button type="button" className="link-button" onClick={onForgotPassword}>Request another reset link</button>
-          {' · '}
-          <button type="button" className="link-button" onClick={onLogin}>Return to sign in</button>
-        </p>
-      )}
+      </form>
+
+      <p className="auth-footnote">
+        Need a new code?{' '}
+        <button
+          type="button"
+          className="link-button"
+          onClick={onForgotPassword}
+        >
+          Request another code
+        </button>
+        {' · '}
+        <button
+          type="button"
+          className="link-button"
+          onClick={onLogin}
+        >
+          Return to sign in
+        </button>
+      </p>
     </AuthLayout>
   )
 }
