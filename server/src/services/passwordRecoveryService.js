@@ -72,6 +72,7 @@ async function requestPasswordReset(email) {
       LIMIT 1`,
     [normalizedEmail]
   );
+  console.info("[PasswordRecovery] Request received");
 
   // Unknown addresses receive the same public response as known addresses.
   if (!result.rows.length) {
@@ -114,10 +115,14 @@ async function requestPasswordReset(email) {
   } finally {
     if (client) client.release();
   }
+  console.info("[PasswordRecovery] User lookup completed", {
+  found: result.rows.length > 0,
+});
 
   try {
     const resetUrl = new URL("/reset-password", frontendUrl.origin);
     resetUrl.searchParams.set("token", rawToken);
+    console.info("[PasswordRecovery] Attempting email delivery");
 
     await sendPasswordResetEmail(user.recovery_email, resetUrl.toString());
   } catch (error) {
