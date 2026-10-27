@@ -1,45 +1,78 @@
+
 "use strict";
 
-const nodemailer = require("nodemailer");
+const BREVO_API_URL = "https://api.brevo.com/v3/smtp/email";
 
-function getEmailFrom() {
-  if (String(process.env.SMTP_HOST || "").toLowerCase() === "smtp.gmail.com") {
-    return process.env.SMTP_USER;
+function getSender() {
+  const value = process.env.EMAIL_FROM || "";
+  const match = value.match(/^(.*?)\s*<([^<>]+)>$/);
+
+  const sender = match
+    ? { name: match[1].trim() || "GCMS", email: match[2].trim() }
+    : { name: "GCMS", email: value.trim() };
+
+  if (
+    !sender.email ||
+    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(sender.email)
+  ) {
+    throw new Error("EMAIL_FROM must be a valid sender email.");
   }
 
-  return process.env.EMAIL_FROM;
+  return sender;
 }
 
-function createTransporter() {
-  const host = process.env.SMTP_HOST;
-  const port = Number(process.env.SMTP_PORT || 587);
-  const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASS;
+async function sendEmail({ email, subject, text, html }) {
+  const apiKey = process.env.BREVO_API_KEY;
 
-  if (!host || !user || !pass || !getEmailFrom()) {
-    throw new Error("SMTP email configuration is incomplete.");
+  if (!apiKey) {
+    throw new Error("BREVO_API_KEY is not configured.");
   }
 
-  if (!Number.isInteger(port) || port < 1 || port > 65535) {
-    throw new Error("SMTP_PORT is invalid.");
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    throw new Error("A valid recipient email is required.");
   }
 
-  return nodemailer.createTransport({
-    host,
-    port,
-    secure:
-      String(process.env.SMTP_SECURE || "").toLowerCase() === "true" ||
-      port === 465,
-    auth: { user, pass },
+  const response = await fetch(BREVO_API_URL, {
+    method: "POST",
+    headers: {
+      "accept": "application/json",
+      "api-key": apiKey,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      sender: getSender(),
+      to: [{ email }],
+      subject,
+      textContent: text,
+      htmlContent: html,
+    }),
+    signal: AbortSignal.timeout(15000),
   });
+
+  const result = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    console.error("GCMS Brevo API error:", {
+      status: response.status,
+      code: result.code,
+      message: result.message,
+    });
+
+    throw new Error(
+      `Email provider rejected the request (HTTP ${response.status}).`
+    );
+  }
+
+  console.log("GCMS email accepted by Brevo:", {
+    messageId: result.messageId,
+  });
+
+  return result;
 }
 
 async function sendEmailVerificationCode(email, code) {
-  const transporter = createTransporter();
-
-  const info = await transporter.sendMail({
-    from: getEmailFrom(),
-    to: email,
+  await sendEmail({
+    email,
     subject: "Verify your email for GCMS",
     text: [
       "Your GCMS email verification code is:",
@@ -48,40 +81,17 @@ async function sendEmailVerificationCode(email, code) {
       "",
       "This code expires in 10 minutes.",
     ].join("\n"),
+    html: `
+      <p>Your GCMS email verification code is:</p>
+      <h2>${String(code).replace(/[&<>"']/g, "")}</h2>
+      <p>This code expires in 10 minutes.</p>
+    `,
   });
-
-  console.log("GCMS verification email delivery result:", {
-    recipient: email,
-    accepted: info.accepted,
-    rejected: info.rejected,
-    response: info.response,
-    messageId: info.messageId,
-  });
-
-  const accepted = (info.accepted || []).some((recipient) => {
-    const address =
-      typeof recipient === "string"
-        ? recipient
-        : recipient.address;
-
-    return address?.toLowerCase() === email.toLowerCase();
-  });
-
-  if (!accepted) {
-    throw new Error(
-      `SMTP server did not accept the verification email for ${email}.`
-    );
-  }
 }
 
-
-
 async function sendPasswordResetEmail(email, resetUrl) {
-  const transporter = createTransporter();
-
-  const info = await transporter.sendMail({
-    from: getEmailFrom(),
-    to: email,
+  await sendEmail({
+    email,
     subject: "Reset your GCMS password",
     text: [
       "We received a request to reset your GCMS password.",
@@ -98,32 +108,9 @@ async function sendPasswordResetEmail(email, resetUrl) {
       <p>If you did not request this, you can ignore this email.</p>
     `,
   });
-
-  console.log("GCMS password-reset email delivery result:", {
-    accepted: info.accepted,
-    rejected: info.rejected,
-    response: info.response,
-    messageId: info.messageId,
-  });
-
-  const accepted = (info.accepted || []).some((recipient) => {
-    const address =
-      typeof recipient === "string"
-        ? recipient
-        : recipient.address;
-
-    return address?.toLowerCase() === email.toLowerCase();
-  });
-
-  if (!accepted) {
-    throw new Error(
-      "SMTP server did not accept the password-reset email."
-    );
-  }
 }
-
 
 module.exports = {
   sendPasswordResetEmail,
-  sendEmailVerificationCode
+  sendEmailVerificationCode,
 };
