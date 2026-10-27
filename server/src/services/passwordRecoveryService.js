@@ -78,10 +78,15 @@ async function requestPasswordReset(email) {
 
   // Unknown addresses receive the same public response as known addresses.
   if (!result.rows.length) {
+     console.log(
+    "[PasswordRecovery] Stopping: no matching active user found"
+  );
     return;
   }
+  console.log("[PasswordRecovery] Matching user found; continuing");
+const user = result.rows[0];
 
-  const user = result.rows[0];
+   user = result.rows[0];
   const rawToken = crypto.randomBytes(32).toString("hex");
   const tokenHash = hashToken(rawToken);
   const ttlMinutes = getTokenExpiryMinutes();
