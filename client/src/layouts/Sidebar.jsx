@@ -112,7 +112,7 @@ export default function Sidebar({
       <a className="sidebar-brand" href="#main-content" onClick={onClose}>
         <span className="sidebar-brand-icon"><Wallet size={21} /></span>
         <span className="sidebar-brand-text">
-          <strong>Gather<span>.</span></strong>
+          <strong>Pamoja<span>.</span></strong>
           <small>Umoja Welfare</small>
         </span>
       </a>

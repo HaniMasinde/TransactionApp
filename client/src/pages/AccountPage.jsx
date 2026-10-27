@@ -310,7 +310,7 @@ export default function AccountPage({ user, onAccountUpdated }) {
         <div className="account-card-heading">
           <div>
             <h2>Profile information</h2>
-            <p>Your changes are saved to your Gather account.</p>
+            <p>Your changes are saved to your pamoja account.</p>
           </div>
           {account?.role && (
             <span className="account-role-badge">{account.role}</span>

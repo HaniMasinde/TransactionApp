@@ -8,7 +8,7 @@ const highlights = [
 ]
 
 function Brand() {
-  return <a className="landing-brand" href="#top" aria-label="Gather home"><span className="landing-brand-icon"><UsersRound size={20} /></span><span>Gather<span>.</span></span></a>
+  return <a className="landing-brand" href="#top" aria-label="Gather home"><span className="landing-brand-icon"><UsersRound size={20} /></span><span>Pamoja<span>.</span></span></a>
 }
 
 function DashboardPreview() {
@@ -53,7 +53,7 @@ export default function LandingPage({ onLogin, onRegister, notice }) {
       <section className="landing-steps" id="how-it-works"><div><span className="landing-eyebrow">GET STARTED</span><h2>Simple from<br />the <em>first step.</em></h2><p>Everything you need to get your group organized and moving forward.</p><a href="#create-account" onClick={event => go(event, onRegister)}>Join your group <ArrowRight size={16} /></a></div><ol><li><span>01</span><div><h3>Create an account</h3><p>Sign up with your details and request to join your group.</p></div></li><li><span>02</span><div><h3>Get connected</h3><p>Once approved, your group’s tools are ready when you are.</p></div></li><li><span>03</span><div><h3>Stay in the loop</h3><p>Follow contributions, meetings, and important updates together.</p></div></li></ol></section>
 
       <section className="landing-cta" id="create-account"><div className="landing-cta-icon"><UsersRound size={24} /></div><div><span>READY WHEN YOU ARE</span><h2>Let’s bring your group together.</h2><p>Create your account and take the first step.</p></div><a href="#create-account" onClick={event => go(event, onRegister)}>Get started <ArrowRight size={17} /></a></section>
-      <footer className="landing-footer"><Brand /><span>Thoughtful tools for groups moving forward.</span><button onClick={onLogin}>Member sign in</button><small>© 2026 Gather</small></footer>
+      <footer className="landing-footer"><Brand /><span>Thoughtful tools for groups moving forward.</span><button onClick={onLogin}>Member sign in</button><small>© 2026 Pamoja</small></footer>
     </main>
   )
 }

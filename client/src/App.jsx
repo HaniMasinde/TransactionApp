@@ -170,7 +170,7 @@ export default function App() {
   if (checkingSession) {
     return (
       <main className="auth-loading" aria-live="polite">
-        <span className="brand-mark">g</span>
+        <span className="brand-mark">p</span>
         <p>Checking your session…</p>
       </main>
     )

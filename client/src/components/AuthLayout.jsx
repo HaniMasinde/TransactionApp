@@ -18,8 +18,8 @@ export default function AuthLayout({
       <div className="auth-shell">
         <aside className="auth-visual">
           <a className="auth-story-brand" href="#home" onClick={goHome}>
-            <span className="auth-story-mark">g</span>
-            gather<span>.</span>
+            <span className="auth-story-mark">p</span>
+            Pamoja<span>.</span>
           </a>
 
           <div className="auth-story-copy">
@@ -59,7 +59,7 @@ export default function AuthLayout({
         <section className="auth-card">
           <a className="auth-mobile-brand" href="#home" onClick={goHome}>
             <span className="auth-story-mark">g</span>
-            gather<span>.</span>
+            pamoja<span>.</span>
           </a>
           <span className="eyebrow">{eyebrow}</span>
           <h1>{title}</h1>
