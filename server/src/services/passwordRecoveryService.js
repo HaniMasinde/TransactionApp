@@ -85,8 +85,6 @@ async function requestPasswordReset(email) {
   }
   console.log("[PasswordRecovery] Matching user found; continuing");
 const user = result.rows[0];
-
-   user = result.rows[0];
   const rawToken = crypto.randomBytes(32).toString("hex");
   const tokenHash = hashToken(rawToken);
   const ttlMinutes = getTokenExpiryMinutes();
