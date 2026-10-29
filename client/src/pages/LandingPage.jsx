@@ -8,12 +8,12 @@ const highlights = [
 ]
 
 function Brand() {
-  return <a className="landing-brand" href="#top" aria-label="Gather home"><span className="landing-brand-icon"><UsersRound size={20} /></span><span>Pamoja<span>.</span></span></a>
+  return <a className="landing-brand" href="#top" aria-label="pamoja home"><span className="landing-brand-icon"><UsersRound size={20} /></span><span>Pamoja<span>.</span></span></a>
 }
 
 function DashboardPreview() {
   return (
-    <div className="landing-preview-wrap" aria-label="Gather dashboard preview">
+    <div className="landing-preview-wrap" aria-label="pamoja dashboard preview">
       <div className="landing-preview-glow" />
       <section className="landing-preview">
         <div className="preview-heading"><div><span className="preview-label">YOUR GROUP</span><h2>Good morning, Alex</h2></div><span className="preview-avatar">A</span></div>
