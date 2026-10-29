@@ -2,6 +2,7 @@ import { useState } from 'react'
 import facebookLogo from '../assets/facebook.jpeg'
 import messageLogo from '../assets/message.jpeg'
 import phoneLogo from '../assets/phone.jpeg'
+import emailLogo from '../assets/email.jpeg'
 import tiktokLogo from '../assets/tiktok.jpeg'
 import whatsappLogo from '../assets/whatsapp.jpeg'
 import Sidebar from './Sidebar.jsx'
@@ -17,13 +18,19 @@ const footerLinks = [
   { label: 'Phone', href: 'tel:+254113745958', icon: phoneLogo },
   {
     label: 'Message',
-    href: 'sms:0794358892"',
+    href: 'sms:0794358892',
     icon: messageLogo,
   },
   {
     label: 'Facebook',
     href: 'https://www.facebook.com/profile.php?id=61592740528794',
     icon: facebookLogo,
+    external: true,
+  },
+  {
+    label: 'Email',
+    href: 'mailto:haningtonemasinde9@gmail.com',
+    icon:emailLogo,
     external: true,
   },
   {
