@@ -10,14 +10,14 @@ import Topbar from './Topbar.jsx'
 const footerLinks = [
   {
     label: 'WhatsApp',
-    href: 'https://wa.me/254113745958',
+    href: 'https://wa.me/254794358892',
     icon: whatsappLogo,
     external: true,
   },
   { label: 'Phone', href: 'tel:+254113745958', icon: phoneLogo },
   {
     label: 'Message',
-    href: 'mailto:haningtonemasinde@gmail.com',
+    href: 'sms:0794358892"',
     icon: messageLogo,
   },
   {
